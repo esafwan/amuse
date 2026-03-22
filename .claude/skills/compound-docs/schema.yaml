@@ -1,0 +1,185 @@
+# Amuse Documentation Schema (Frappe/ERPNext)
+# This schema MUST be validated before writing any documentation file
+
+required_fields:
+  module:
+    type: string
+    description: "Module/area of Amuse (e.g., 'Pricing Intelligence', 'Operations Frontend', 'Customer Management')"
+    examples:
+      - "Pricing Intelligence"
+      - "Operations Frontend"
+      - "Customer Management"
+      - "Billing"
+      - "Products"
+
+  date:
+    type: string
+    pattern: '^\d{4}-\d{2}-\d{2}$'
+    description: "Date when this problem was solved (YYYY-MM-DD)"
+
+  problem_type:
+    type: enum
+    values:
+      - build_error          # Bench, pip, asset compilation errors
+      - test_failure         # Test failures, flaky tests
+      - runtime_error        # Exceptions, crashes during execution
+      - performance_issue    # Slow queries, memory issues, N+1 queries
+      - database_issue       # Migration, MariaDB/PostgreSQL query, schema problems
+      - security_issue       # Authentication, authorization, CSRF, XSS
+      - ui_bug               # Frontend React, Desk UI, page builder issues
+      - integration_issue    # External service, API, ERPNext core integration problems
+      - logic_error          # Business logic bugs
+      - developer_experience # DX issues: workflow, tooling, fixtures, dev setup
+      - workflow_issue       # Development process, missing steps, unclear practices
+      - best_practice        # Documenting patterns and practices to follow
+      - documentation_gap    # Missing or inadequate documentation
+    description: "Primary category of the problem"
+
+  component:
+    type: enum
+    values:
+      - frappe_doctype       # DocType definitions, JSON schemas
+      - frappe_controller    # DocType Python controllers (doc.py)
+      - frappe_api           # Whitelisted API methods (@frappe.whitelist)
+      - service_layer        # Custom service classes/modules
+      - background_job       # frappe.enqueue, RQ jobs, scheduler_events
+      - database             # MariaDB/PostgreSQL, migrations, patches
+      - frontend_react       # React components, TanStack Query, frontend app
+      - frontend_desk        # Desk UI customizations, client scripts
+      - hooks                # hooks.py configuration, doc_events
+      - pricing_engine       # Pricing rules, promotional schemes, item prices
+      - customer_management  # Customer DocTypes, CRM views
+      - billing              # Sales Invoice, Payment Entry, collections
+      - reporting            # Query Reports, Script Reports, dashboards
+      - development_workflow # Dev process, bench commands, tooling
+      - testing_framework    # Test setup, fixtures, factory patterns
+      - documentation        # README, guides, inline docs
+      - tooling              # Scripts, bench commands, CLI tools
+    description: "Amuse component involved"
+
+  symptoms:
+    type: array[string]
+    min_items: 1
+    max_items: 5
+    description: "Observable symptoms (error messages, visual issues, crashes)"
+    examples:
+      - "N+1 query detected in price change log generation"
+      - "frappe.get_doc raising DoesNotExistError for valid document"
+      - "React Query cache not invalidating after mutation"
+
+  root_cause:
+    type: enum
+    values:
+      - missing_link         # Incorrect DocType Link field or missing relation
+      - missing_select_fields # Not specifying fields in frappe.get_list causing extra queries
+      - missing_index        # Database performance issue, missing index
+      - wrong_api            # Using deprecated/incorrect Frappe API
+      - scope_issue          # Incorrect query filters or permission scope
+      - hook_ordering        # doc_events hook execution order issue
+      - async_timing         # Background job timing, RQ queue issue
+      - memory_leak          # Memory leak or excessive allocation
+      - config_error         # Configuration, site_config, or hooks.py issue
+      - logic_error          # Algorithm/business logic bug
+      - test_isolation       # Test isolation or fixture issue
+      - missing_validation   # Missing DocType validation or controller check
+      - missing_permission   # Role/permission check missing
+      - missing_workflow_step # Skipped or undocumented workflow step
+      - inadequate_documentation # Missing or unclear documentation
+      - missing_tooling      # Lacking helper scripts or automation
+      - incomplete_setup     # Missing fixtures, test data, or bench config
+      - cache_issue          # Redis cache stale data or invalidation problem
+      - frontend_state       # React state management or query cache issue
+    description: "Fundamental cause of the problem"
+
+  resolution_type:
+    type: enum
+    values:
+      - code_fix             # Fixed by changing source code
+      - patch                # Fixed by Frappe patch (patches/ directory)
+      - config_change        # Fixed by changing site_config or hooks.py
+      - test_fix             # Fixed by correcting tests
+      - dependency_update    # Fixed by updating pip package/npm dependency
+      - environment_setup    # Fixed by bench/environment configuration
+      - workflow_improvement # Improved development workflow or process
+      - documentation_update # Added or updated documentation
+      - tooling_addition     # Added helper script or bench command
+      - fixture_update       # Updated test fixtures or demo data
+      - custom_field_fix     # Fixed custom field definition or property setter
+    description: "Type of fix applied"
+
+  severity:
+    type: enum
+    values:
+      - critical             # Blocks production or development (bench fails, data loss)
+      - high                 # Impairs core functionality (feature broken, security issue)
+      - medium               # Affects specific feature (UI broken, performance impact)
+      - low                  # Minor issue or edge case
+    description: "Impact severity"
+
+optional_fields:
+  frappe_version:
+    type: string
+    pattern: '^\d+\.\d+\.\d+$'
+    description: "Frappe version where this was encountered (e.g., '16.0.0')"
+
+  erpnext_version:
+    type: string
+    pattern: '^\d+\.\d+\.\d+$'
+    description: "ERPNext version where this was encountered (e.g., '16.0.0')"
+
+  related_components:
+    type: array[string]
+    description: "Other components that interact with this issue"
+
+  tags:
+    type: array[string]
+    max_items: 8
+    description: "Searchable keywords (lowercase, hyphen-separated)"
+    examples:
+      - "n-plus-one"
+      - "react-query"
+      - "doc-events"
+      - "pricing-rule"
+
+validation_rules:
+  - "module must be a valid Amuse module name"
+  - "date must be in YYYY-MM-DD format"
+  - "problem_type must match one of the enum values"
+  - "component must match one of the enum values"
+  - "symptoms must be specific and observable (not vague)"
+  - "root_cause must be the ACTUAL cause, not a symptom"
+  - "resolution_type must match one of the enum values"
+  - "severity must match one of the enum values"
+  - "tags should be lowercase, hyphen-separated"
+
+# Example valid front matter:
+# ---
+# module: Pricing Intelligence
+# date: 2026-03-22
+# problem_type: performance_issue
+# component: service_layer
+# symptoms:
+#   - N+1 query when loading price change logs
+#   - Snapshot job taking >30 seconds
+# root_cause: missing_select_fields
+# frappe_version: 16.0.0
+# resolution_type: code_fix
+# severity: high
+# tags: [n-plus-one, frappe-get-list, performance]
+# ---
+#
+# Example DX issue front matter:
+# ---
+# module: Development Workflow
+# date: 2026-03-22
+# problem_type: developer_experience
+# component: development_workflow
+# symptoms:
+#   - No example data for pricing intelligence in development
+#   - bench fixtures doesn't load demo price changes
+# root_cause: incomplete_setup
+# frappe_version: 16.0.0
+# resolution_type: fixture_update
+# severity: low
+# tags: [fixtures, dx, workflow]
+# ---
