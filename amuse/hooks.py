@@ -134,13 +134,12 @@ add_to_apps_screen = [
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Item Price": {
+		"on_insert": "amuse.services.price_change_detector.handle_item_price_change",
+		"on_update": "amuse.services.price_change_detector.handle_item_price_change",
+	}
+}
 
 # Scheduled Tasks
 # ---------------
