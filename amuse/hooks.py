@@ -8,18 +8,20 @@ app_license = "agpl-3.0"
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["erpnext"]
 
-# Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "amuse",
-# 		"logo": "/assets/amuse/logo.png",
-# 		"title": "Amuse",
-# 		"route": "/amuse",
-# 		"has_permission": "amuse.api.permission.has_app_permission"
-# 	}
-# ]
+website_route_rules = [
+	{"from_route": "/amuse/<path:app_path>", "to_route": "amuse"},
+]
+
+add_to_apps_screen = [
+	{
+		"name": "amuse",
+		"logo": "/assets/amuse/logo.png",
+		"title": "Amuse",
+		"route": "/amuse",
+	}
+]
 
 # Includes in <head>
 # ------------------

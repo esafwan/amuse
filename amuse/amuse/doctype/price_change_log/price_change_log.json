@@ -1,0 +1,389 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:PCL-{item}-{MM}{YY}-{####}",
+ "creation": "2026-03-22 16:22:55.049043",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "item",
+  "item_name",
+  "price_list",
+  "brand",
+  "company",
+  "currency",
+  "territory",
+  "change_ctx",
+  "change_timestamp",
+  "change_type",
+  "changed_by",
+  "source_of_change",
+  "change_reason",
+  "notes",
+  "approval_reference",
+  "old_price_col",
+  "previous_item_price",
+  "previous_rate",
+  "previous_valid_from",
+  "previous_valid_upto",
+  "previous_enabled",
+  "new_price_col",
+  "new_item_price",
+  "new_rate",
+  "new_valid_from",
+  "new_valid_upto",
+  "new_enabled",
+  "analytics_sec",
+  "days_active",
+  "transaction_count",
+  "invoice_count",
+  "total_qty",
+  "total_revenue",
+  "expected_revenue_at_base_price",
+  "average_realized_price",
+  "attr_sec",
+  "total_discount_value",
+  "discount_pct_vs_base",
+  "pricing_rule_discount_value",
+  "promotional_scheme_discount_value",
+  "coupon_discount_value",
+  "invoice_level_discount_value",
+  "manual_discount_value",
+  "residual_discount_value",
+  "cust_sec",
+  "unique_customers",
+  "new_customers",
+  "revenue_per_customer",
+  "ctrl_sec",
+  "snapshot_status",
+  "job_id",
+  "regime_hash"
+ ],
+ "fields": [
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item.item_name",
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name"
+  },
+  {
+   "fieldname": "price_list",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Price List",
+   "options": "Price List"
+  },
+  {
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "label": "Territory",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "change_ctx",
+   "fieldtype": "Section Break",
+   "label": "Change Info"
+  },
+  {
+   "fieldname": "change_timestamp",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Change Timestamp"
+  },
+  {
+   "fieldname": "change_type",
+   "fieldtype": "Select",
+   "label": "Change Type",
+   "options": "Rate Change\nValidity Change\nEnabled State Change\nNew Price"
+  },
+  {
+   "fieldname": "changed_by",
+   "fieldtype": "Link",
+   "label": "Changed By",
+   "options": "User"
+  },
+  {
+   "fieldname": "source_of_change",
+   "fieldtype": "Data",
+   "label": "Source of Change"
+  },
+  {
+   "fieldname": "change_reason",
+   "fieldtype": "Link",
+   "label": "Change Reason",
+   "options": "Price Change Reason"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "approval_reference",
+   "fieldtype": "Data",
+   "label": "Approval Ref"
+  },
+  {
+   "fieldname": "old_price_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "previous_item_price",
+   "fieldtype": "Data",
+   "label": "Previous Item Price Ref"
+  },
+  {
+   "fieldname": "previous_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Previous Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "previous_valid_from",
+   "fieldtype": "Date",
+   "label": "Previous Valid From"
+  },
+  {
+   "fieldname": "previous_valid_upto",
+   "fieldtype": "Date",
+   "label": "Previous Valid Upto"
+  },
+  {
+   "default": "0",
+   "fieldname": "previous_enabled",
+   "fieldtype": "Check",
+   "label": "Previous Enabled"
+  },
+  {
+   "fieldname": "new_price_col",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "new_item_price",
+   "fieldtype": "Data",
+   "label": "New Item Price Ref"
+  },
+  {
+   "fieldname": "new_rate",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "New Rate",
+   "options": "currency"
+  },
+  {
+   "fieldname": "new_valid_from",
+   "fieldtype": "Date",
+   "label": "New Valid From"
+  },
+  {
+   "fieldname": "new_valid_upto",
+   "fieldtype": "Date",
+   "label": "New Valid Upto"
+  },
+  {
+   "default": "0",
+   "fieldname": "new_enabled",
+   "fieldtype": "Check",
+   "label": "New Enabled"
+  },
+  {
+   "fieldname": "analytics_sec",
+   "fieldtype": "Section Break",
+   "label": "Prior Price Analytics (Computed)"
+  },
+  {
+   "fieldname": "days_active",
+   "fieldtype": "Int",
+   "label": "Days Active"
+  },
+  {
+   "fieldname": "transaction_count",
+   "fieldtype": "Int",
+   "label": "Transaction Count"
+  },
+  {
+   "fieldname": "invoice_count",
+   "fieldtype": "Int",
+   "label": "Invoice Count"
+  },
+  {
+   "fieldname": "total_qty",
+   "fieldtype": "Float",
+   "label": "Total Quantity Sold"
+  },
+  {
+   "fieldname": "total_revenue",
+   "fieldtype": "Currency",
+   "label": "Total Revenue",
+   "options": "currency"
+  },
+  {
+   "fieldname": "expected_revenue_at_base_price",
+   "fieldtype": "Currency",
+   "label": "Expected Revenue @ Base Price",
+   "options": "currency"
+  },
+  {
+   "fieldname": "average_realized_price",
+   "fieldtype": "Currency",
+   "label": "Avg Realized Price",
+   "options": "currency"
+  },
+  {
+   "fieldname": "attr_sec",
+   "fieldtype": "Section Break",
+   "label": "Discount Attribution"
+  },
+  {
+   "fieldname": "total_discount_value",
+   "fieldtype": "Currency",
+   "label": "Total Discount Value",
+   "options": "currency"
+  },
+  {
+   "fieldname": "discount_pct_vs_base",
+   "fieldtype": "Percent",
+   "label": "Discount % vs Base"
+  },
+  {
+   "fieldname": "pricing_rule_discount_value",
+   "fieldtype": "Currency",
+   "label": "Pricing Rule Discount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "promotional_scheme_discount_value",
+   "fieldtype": "Currency",
+   "label": "Promotional Scheme Discount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "coupon_discount_value",
+   "fieldtype": "Currency",
+   "label": "Coupon Discount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "invoice_level_discount_value",
+   "fieldtype": "Currency",
+   "label": "Invoice-level Discount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "manual_discount_value",
+   "fieldtype": "Currency",
+   "label": "Manual Discount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "residual_discount_value",
+   "fieldtype": "Currency",
+   "label": "Residual Discount",
+   "options": "currency"
+  },
+  {
+   "fieldname": "cust_sec",
+   "fieldtype": "Section Break",
+   "label": "Customer Metrics"
+  },
+  {
+   "fieldname": "unique_customers",
+   "fieldtype": "Int",
+   "label": "Unique Customers"
+  },
+  {
+   "fieldname": "new_customers",
+   "fieldtype": "Int",
+   "label": "New Customers"
+  },
+  {
+   "fieldname": "revenue_per_customer",
+   "fieldtype": "Currency",
+   "label": "Revenue per Customer",
+   "options": "currency"
+  },
+  {
+   "fieldname": "ctrl_sec",
+   "fieldtype": "Section Break",
+   "label": "System Control"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "snapshot_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Snapshot Status",
+   "options": "Pending\nCompleted\nFailed"
+  },
+  {
+   "fieldname": "job_id",
+   "fieldtype": "Data",
+   "label": "Job ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "regime_hash",
+   "fieldtype": "Data",
+   "label": "Regime Hash",
+   "read_only": 1,
+   "unique": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-03-22 16:22:55.049043",
+ "modified_by": "Administrator",
+ "module": "Amuse",
+ "name": "Price Change Log",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

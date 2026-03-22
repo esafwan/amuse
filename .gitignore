@@ -53,3 +53,7 @@ jspm_packages/
 
 # Aider AI Chat
 .aider*
+
+# Amuse Frontend Output
+amuse/public/frontend/
+amuse/www/amuse.html

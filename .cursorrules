@@ -1,0 +1,8 @@
+# AI Agent Directives
+
+**CRITICAL INSTRUCTION**: ALL AI ASSISTANTS MUST STRICTLY FOLLOW THE COMPOUND ENGINEERING GUIDELINES.
+
+Before writing a single line of code, you MUST review the rules at:
+`amuse/AGENTS.MD`
+
+If you implement code without a pre-approved plan in `docs/plans/`, you are violating this project's core directives.
