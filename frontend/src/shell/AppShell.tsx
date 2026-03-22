@@ -1,6 +1,7 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { Home, Tag, Store, ReceiptText, Users } from 'lucide-react'
 import clsx from 'clsx'
+import ThemeToggle from './ThemeToggle'
 
 export default function AppShell() {
     
@@ -18,19 +19,22 @@ export default function AppShell() {
             {/* The individual subroutes render their own `.screen active` container and `.topbar` elements */}
             <Outlet />
 
-            <div className="bottom-nav">
-                {navItems.map((item) => (
-                    <NavLink
-                        key={item.path}
-                        to={item.path}
-                        className={({ isActive }) => clsx("nav-item", isActive && "active")}
-                    >
-                        <item.icon />
-                        <span>{item.name}</span>
-                        {item.name === 'Exceptions' && <div className="nav-badge"></div>}
-                    </NavLink>
-                ))}
-            </div>
+            <nav className="bottom-nav" aria-label="Primary">
+                <div className="bottom-nav-links">
+                    {navItems.map((item) => (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={({ isActive }) => clsx('nav-item', isActive && 'active')}
+                        >
+                            <item.icon />
+                            <span>{item.name}</span>
+                            {item.name === 'Exceptions' && <div className="nav-badge"></div>}
+                        </NavLink>
+                    ))}
+                </div>
+                <ThemeToggle />
+            </nav>
         </div>
     )
 }
