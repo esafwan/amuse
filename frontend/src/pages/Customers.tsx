@@ -1,21 +1,41 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
-import { useCustomerList } from '../hooks/useCustomer'
+import { useCustomer, useCustomerGroups, useCustomerListPaged } from '../hooks/useCustomer'
+import { InlineLoadingState, ListEmptyState, ListLoadingState } from '../components/AppState'
 
 export default function Customers() {
-    const { data: customers, isLoading, error } = useCustomerList()
     const [filter, setFilter] = useState('all')
-    const [search, setSearch] = useState('')
+    const [searchInput, setSearchInput] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
 
-    if (isLoading) return <div className="p-8 text-center text-sm text-gray-500">Loading customers...</div>
-    if (error) return <div className="p-8 text-center text-sm text-red-500">Failed to load: {error.message}</div>
+    useEffect(() => {
+        const t = window.setTimeout(() => setDebouncedSearch(searchInput), 320)
+        return () => window.clearTimeout(t)
+    }, [searchInput])
 
-    const filtered = customers?.filter(c => {
-        if (filter !== 'all' && c.customer_group.toLowerCase() !== filter.toLowerCase()) return false
-        if (search && !c.customer_name.toLowerCase().includes(search.toLowerCase())) return false
-        return true
-    }) || []
+    const { data: groups = [] } = useCustomerGroups()
+    const {
+        data,
+        isLoading,
+        error,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useCustomerListPaged(filter, debouncedSearch)
+
+    const customers = useMemo(() => data?.pages.flat() ?? [], [data])
+
+    const { data: customerData, isLoading: isCustomerLoading } = useCustomer(selectedCustomer?.name || '')
+
+    if (isLoading) {
+        return (
+            <div className="screen active">
+                <ListLoadingState title="Loading customers" description="Syncing your customer directory…" />
+            </div>
+        )
+    }
+    if (error) return <div className="p-8 text-center text-sm text-red-500">Failed to load: {error.message}</div>
 
     return (
         <div className="screen active">
@@ -28,34 +48,56 @@ export default function Customers() {
 
             <div className="search-box">
                 <Search size={20} />
-                <input 
-                    placeholder="Search by name, phone, email..." 
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
+                <input
+                    placeholder="Search by name, phone, email..."
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                 />
             </div>
 
             <div className="chip-row">
-                {['all', 'commercial', 'individual', 'government'].map(cat => (
-                    <div 
-                        key={cat}
-                        className={`chip ${filter === cat ? 'active' : ''}`}
-                        onClick={() => setFilter(cat)}
+                <div
+                    key="all"
+                    className={`chip ${filter === 'all' ? 'active' : ''}`}
+                    onClick={() => setFilter('all')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setFilter('all')
+                        }
+                    }}
+                >
+                    All
+                </div>
+                {groups.map((g) => (
+                    <div
+                        key={g}
+                        className={`chip ${filter === g ? 'active' : ''}`}
+                        onClick={() => setFilter(g)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                setFilter(g)
+                            }
+                        }}
                     >
-                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                        {g}
                     </div>
                 ))}
             </div>
 
             <div className="scroll-area">
-                {filtered.map((c) => {
+                {customers.map((c) => {
                     const initials = c.customer_name.substring(0, 2).toUpperCase()
-                    // Mocking visits & revenue for prototype showcase
                     const visits = Math.floor(Math.random() * 20) + 1
                     const revenue = visits * Math.floor(Math.random() * 500 + 100)
-                    
+
                     return (
-                        <div key={c.name} className="list-item" onClick={() => setSelectedCustomer(c)}>
+                        <div key={c.name} className="app-list-row" onClick={() => setSelectedCustomer(c)}>
                             <div className="list-avatar">{initials}</div>
                             <div className="list-body">
                                 <div className="list-name">{c.customer_name}</div>
@@ -68,10 +110,28 @@ export default function Customers() {
                         </div>
                     )
                 })}
-                {filtered.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-3)', fontSize: 14 }}>
-                        No customers found
+                {hasNextPage && (
+                    <div style={{ padding: '12px 0 24px', display: 'flex', justifyContent: 'center' }}>
+                        <button
+                            type="button"
+                            className="chip"
+                            style={{ cursor: isFetchingNextPage ? 'wait' : 'pointer', opacity: isFetchingNextPage ? 0.6 : 1 }}
+                            disabled={isFetchingNextPage}
+                            onClick={() => fetchNextPage()}
+                        >
+                            {isFetchingNextPage ? 'Loading…' : 'Load more'}
+                        </button>
                     </div>
+                )}
+                {customers.length === 0 && (
+                    <ListEmptyState
+                        title={debouncedSearch || filter !== 'all' ? 'No customers match' : 'No customers yet'}
+                        description={
+                            debouncedSearch || filter !== 'all'
+                                ? 'Try another search term or filter—or switch back to All.'
+                                : 'Add customers in Desk or import a list to see them here.'
+                        }
+                    />
                 )}
             </div>
 
@@ -79,46 +139,50 @@ export default function Customers() {
             {selectedCustomer && (
                 <div className="customer-detail open">
                     <div className="cd-header">
-                        <div className="cd-back" onClick={() => setSelectedCustomer(null)}>
-                            <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        </div>
-                        <div style={{ fontSize: 16, fontWeight: 500 }}>Customer Profile</div>
+                        <button type="button" className="cd-back" onClick={() => setSelectedCustomer(null)} aria-label="Back to list">
+                            <svg viewBox="0 0 24 24" aria-hidden><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </button>
+                        <div className="cd-title">Customer profile</div>
                     </div>
-                    <div className="cd-profile">
-                        <div className="cd-avatar-big">{selectedCustomer.customer_name.substring(0, 2).toUpperCase()}</div>
-                        <div className="cd-name">{selectedCustomer.customer_name}</div>
-                        <div className="cd-sub">{selectedCustomer.email_id || 'No Email'} &middot; {selectedCustomer.customer_group}</div>
-                        
-                        <div className="cd-actions">
-                            <div className="cd-action">
-                                <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 9h20"/></svg>
-                                <span>Invoice</span>
+                    {isCustomerLoading ? (
+                        <InlineLoadingState title="Loading profile…" />
+                    ) : (
+                        <div className="cd-profile">
+                            <div className="cd-avatar-big">{selectedCustomer.customer_name.substring(0, 2).toUpperCase()}</div>
+                            <div className="cd-name">{selectedCustomer.customer_name}</div>
+                            <div className="cd-sub">{customerData?.email_id || selectedCustomer.email_id || 'No Email'} &middot; {customerData?.customer_group || selectedCustomer.customer_group}</div>
+                            
+                            <div className="cd-actions">
+                                <div className="cd-action">
+                                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 9h20"/></svg>
+                                    <span>Invoice</span>
+                                </div>
+                                <div className="cd-action">
+                                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                                    <span>Payment</span>
+                                </div>
+                                <div className="cd-action">
+                                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+                                    <span>Message</span>
+                                </div>
                             </div>
-                            <div className="cd-action">
-                                <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-                                <span>Payment</span>
-                            </div>
-                            <div className="cd-action">
-                                <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
-                                <span>Message</span>
+                            
+                            <div className="cd-stat-row">
+                                <div className="cd-stat">
+                                    <div className="cd-stat-val">{customerData?.territory || 'Default'}</div>
+                                    <div className="cd-stat-label">Territory</div>
+                                </div>
+                                <div className="cd-stat">
+                                    <div className="cd-stat-val">{customerData?.default_currency || 'INR'}</div>
+                                    <div className="cd-stat-label">Currency</div>
+                                </div>
+                                <div className="cd-stat">
+                                    <div className="cd-stat-val">{customerData?.disabled ? 'Inactive' : 'Active'}</div>
+                                    <div className="cd-stat-label">Status</div>
+                                </div>
                             </div>
                         </div>
-                        
-                        <div className="cd-stat-row">
-                            <div className="cd-stat">
-                                <div className="cd-stat-val">12</div>
-                                <div className="cd-stat-label">Visits</div>
-                            </div>
-                            <div className="cd-stat">
-                                <div className="cd-stat-val">&#8377;14,200</div>
-                                <div className="cd-stat-label">Lifetime</div>
-                            </div>
-                            <div className="cd-stat">
-                                <div className="cd-stat-val">Active</div>
-                                <div className="cd-stat-label">Status</div>
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
             )}
         </div>
