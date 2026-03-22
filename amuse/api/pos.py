@@ -97,18 +97,34 @@ def get_items(
 	"""Paginated item catalog with prices and stock for the POS grid.
 
 	Delegates to ``erpnext.selling.page.point_of_sale.point_of_sale.get_items``.
+
+	ERPNext requires a concrete **item_group** (root of the POS browser). The SPA
+	often omits it; we resolve the POS profile's parent group or the Item Group
+	tree root, matching the standard POS page behaviour.
 	"""
 	from erpnext.selling.page.point_of_sale.point_of_sale import (
 		get_items as _get_items,
 	)
+	from erpnext.selling.page.point_of_sale.point_of_sale import (
+		get_parent_item_group as _parent_item_group,
+	)
+	from frappe.utils.nestedset import get_root_of
+
+	ig = (item_group or "").strip() or None
+	if not ig:
+		ig = _parent_item_group(pos_profile)
+	if not ig or not frappe.db.exists("Item Group", ig):
+		ig = get_root_of("Item Group")
+
+	st = (search_term or "").strip()
 
 	return _get_items(
 		start=start,
 		page_length=page_length,
 		price_list=price_list,
-		item_group=item_group,
+		item_group=ig,
 		pos_profile=pos_profile,
-		search_term=search_term,
+		search_term=st,
 	)
 
 

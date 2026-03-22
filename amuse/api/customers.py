@@ -47,15 +47,20 @@ def list_customers(
 	limit_page_length: int = 20,
 	limit_start: int = 0,
 	order_by: str = "modified desc",
+	search: str | None = None,
 ) -> list[dict]:
 	"""List Customers with optional filters.
 
 	*filters* and *fields* can be JSON strings.
+
+	*search* applies a broad match on name, email, or mobile (for list + pagination).
 	"""
 	if isinstance(filters, str):
 		filters = json.loads(filters)
 	if isinstance(fields, str):
 		fields = json.loads(fields)
+
+	filters_dict: dict = dict(filters or {})
 
 	if not fields:
 		fields = [
@@ -69,14 +74,36 @@ def list_customers(
 			"email_id",
 		]
 
+	or_filters = None
+	if search and search.strip():
+		term = f"%{search.strip()}%"
+		or_filters = [
+			["customer_name", "like", term],
+			["email_id", "like", term],
+			["mobile_no", "like", term],
+		]
+
 	return frappe.get_list(
 		"Customer",
-		filters=filters,
+		filters=filters_dict,
+		or_filters=or_filters,
 		fields=fields,
 		limit_page_length=limit_page_length,
 		limit_start=limit_start,
 		order_by=order_by,
 	)
+
+
+@frappe.whitelist()
+def list_customer_groups() -> list[str]:
+	"""Return assignable Customer Group names for filter chips (non-group nodes)."""
+	rows = frappe.get_all(
+		"Customer Group",
+		filters={"is_group": 0},
+		fields=["name"],
+		order_by="name",
+	)
+	return [r.name for r in rows]
 
 
 # ---------------------------------------------------------------------------
