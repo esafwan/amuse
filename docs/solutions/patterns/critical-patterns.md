@@ -4,26 +4,26 @@ These patterns represent lessons learned from solved problems that must be follo
 
 ---
 
-*No critical patterns documented yet. Patterns will be added here as non-obvious, recurring issues are identified and solved.*
+## 1. Unified Side Panel (Panel/Drawer Pattern) (ALWAYS REQUIRED)
 
-<!-- Template for adding new patterns:
-
-## N. [Pattern Name] (ALWAYS REQUIRED)
-
-### WRONG ([Will cause X error])
-```python
-[code showing wrong approach]
+### WRONG (Multiple booleans and separate drawer classes)
+```tsx
+const [isCartOpen, setIsCartOpen] = useState(false)
+const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+// ...
+<div className="cart-drawer">...</div>
+<div className="checkout-drawer">...</div>
 ```
 
-### CORRECT
-```python
-[code showing correct approach]
+### CORRECT (Single step state and unified panel class)
+```tsx
+const [panelStep, setPanelStep] = useState<null | 'cart' | 'payment'>(null)
+// ...
+<div className="customer-detail open">...</div>
 ```
 
-**Why:** [Technical explanation of why this is required]
+**Why:** Using a single enum-style state (`panelStep`) prevents invalid states (like both cart and payment being open/closed simultaneously) and leverages our `.customer-detail` responsive CSS which already handles the Desktop-to-Mobile transforms (Side Panel vs. Full Screen).
 
-**Placement/Context:** [When this applies]
+**Placement/Context:** Any view requiring a detailed slide-out overlay (POS cart, Customer profiles, Invoice details).
 
-**Documented in:** `docs/solutions/[category]/[filename].md`
-
--->
+**Documented in:** `.skills/ui/SKILL.md`
