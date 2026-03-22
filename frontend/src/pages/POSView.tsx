@@ -1,55 +1,139 @@
-import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Loader2, Search, Store } from 'lucide-react'
+import { ListEmptyState, ListLoadingState } from '../components/AppState'
+import { useOpeningEntry, usePOSProfile, usePOSItems } from '../hooks/usePOS'
+import { useCreateInvoice } from '../hooks/useInvoice'
 
 export default function POSView() {
-
-    const posItems = [
-        { id: 1, name: 'All ride access', price: 749, tier: 'combo', cat: 'combo' },
-        { id: 2, name: 'Water + ride combo', price: 499, tier: 'combo', cat: 'combo' },
-        { id:3, name:'Thrill seeker combo', price:299, tier:'combo', cat:'combo' },
-        { id:7, name:'Water park access', price:350, tier:'premium', cat:'premium' },
-        { id:8, name:'Aquarium tunnel', price:100, tier:'standard', cat:'standard' },
-        { id:11, name:'Bumper cars', price:100, tier:'standard', cat:'standard' },
-        { id:16, name:'Gyroscope ride', price:40, tier:'value', cat:'value' },
-        { id:19, name:'Crazy bike', price:30, tier:'value', cat:'value' },
-    ]
-
-    const tierColors: Record<string, string> = { combo: 'var(--accent)', premium: 'var(--amber)', standard: 'var(--blue)', value: 'var(--text-3)' }
-    const tierBg: Record<string, string> = { combo: 'var(--accent-bg)', premium: 'var(--amber-bg)', standard: 'var(--blue-bg)', value: 'var(--surface-2)' }
+    const { data: opening, isLoading: isOpeningLoading } = useOpeningEntry()
+    const activeSession = opening?.[0]
+    const posProfileName = activeSession?.pos_profile
+    
+    const { data: profile } = usePOSProfile(posProfileName)
+    const priceList = profile?.selling_price_list
 
     const [filter, setFilter] = useState('all')
     const [search, setSearch] = useState('')
-    const [cart, setCart] = useState<Record<number, number>>({})
+    const [cart, setCart] = useState<Record<string, { qty: number, item: any }>>({})
     const [isCartOpen, setIsCartOpen] = useState(false)
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
 
-    const filteredItems = posItems.filter(i => {
-        if (filter !== 'all' && i.cat !== filter) return false
-        if (search && !i.name.toLowerCase().includes(search.toLowerCase())) return false
-        return true
+    // Only fetch items if we have a valid session and price list.
+    const { data: itemsRes, isLoading: itemsLoading } = usePOSItems({ 
+        price_list: priceList || '', 
+        pos_profile: posProfileName || '' 
     })
+    
+    const { mutate: createInvoice, isPending: isCheckingOut } = useCreateInvoice()
 
-    const handleAddToCart = (id: number) => {
-        setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }))
+    const fetchedItems = useMemo(() => {
+        if (!itemsRes) return []
+        const itemsList = Array.isArray(itemsRes) ? itemsRes : (itemsRes.items || [])
+        return itemsList.filter((i: any) => {
+            if (filter !== 'all') {
+                const group = i.item_group?.toLowerCase() || ''
+                if (!group.includes(filter.toLowerCase())) return false
+            }
+            if (search) {
+                if (!i.item_name?.toLowerCase().includes(search.toLowerCase()) && 
+                    !i.item_code?.toLowerCase().includes(search.toLowerCase())) return false
+            }
+            return true
+        })
+    }, [itemsRes, filter, search])
+
+    const handleAddToCart = (item: any) => {
+        setCart(prev => ({
+            ...prev,
+            [item.item_code]: { qty: (prev[item.item_code]?.qty || 0) + 1, item }
+        }))
     }
 
-    const changeQty = (id: number, delta: number) => {
+    const changeQty = (itemCode: string, delta: number) => {
         setCart(prev => {
             const next = { ...prev }
-            next[id] = (next[id] || 0) + delta
-            if (next[id] <= 0) delete next[id]
+            if (!next[itemCode]) return next
+            next[itemCode].qty += delta
+            if (next[itemCode].qty <= 0) delete next[itemCode]
             return next
         })
     }
 
+    const getTierColor = (idx: number) => {
+        const colors = [
+            { bg: 'var(--accent-bg)', text: 'var(--accent)' },
+            { bg: 'var(--amber-bg)', text: 'var(--amber)' },
+            { bg: 'var(--blue-bg)', text: 'var(--blue)' },
+            { bg: 'var(--surface-2)', text: 'var(--text-3)' }
+        ]
+        return colors[idx % colors.length]
+    }
+
     let cartCount = 0
     let cartTotal = 0
-    Object.entries(cart).forEach(([k, qty]) => {
-        const item = posItems.find(i => i.id === Number(k))
-        if (item) {
-            cartCount += qty
-            cartTotal += qty * item.price
-        }
+    Object.values(cart).forEach(({ qty, item }) => {
+        cartCount += qty
+        cartTotal += qty * (item.price_list_rate || 0)
     })
+
+    const handleConfirmPayment = () => {
+        const doc = {
+            customer: profile?.customer || 'Amuse Guest',
+            company: activeSession?.company,
+            is_pos: 1,
+            pos_profile: posProfileName,
+            set_posting_time: 1,
+            items: Object.values(cart).map(({ qty, item }) => ({
+                item_code: item.item_code,
+                qty: qty,
+                rate: item.price_list_rate,
+            }))
+        }
+        createInvoice(doc, {
+            onSuccess: () => {
+                setCart({})
+                setIsCheckoutOpen(false)
+                setIsCartOpen(false)
+                alert('Payment successful! Invoice created.')
+            },
+            onError: (err: any) => {
+                alert('Checkout failed: ' + err.message)
+            }
+        })
+    }
+
+    if (isOpeningLoading) {
+        return (
+            <div className="screen active empty-state empty-state-loading" role="status" aria-live="polite">
+                <div className="empty-state-inner">
+                    <div className="empty-state-icon-wrap" aria-hidden>
+                        <Loader2 />
+                    </div>
+                    <p className="empty-state-title">Checking POS session</p>
+                    <p className="empty-state-desc">Verifying your shift with the server…</p>
+                </div>
+            </div>
+        )
+    }
+
+    if (!activeSession) {
+        return (
+            <div className="screen active empty-state">
+                <div className="empty-state-inner">
+                    <div className="empty-state-icon-wrap" aria-hidden>
+                        <Store />
+                    </div>
+                    <h2 className="empty-state-title">No active POS session</h2>
+                    <p className="empty-state-desc">
+                        Open a POS shift from Desk (or run the demo seed) so you can ring up sales here.
+                    </p>
+                    <p className="empty-state-hint">
+                        Accounts → Point of Sale → POS Opening Entry, or ask an admin to start a shift for your user.
+                    </p>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="screen active">
@@ -63,7 +147,7 @@ export default function POSView() {
             <div className="search-box">
                 <Search size={20} />
                 <input 
-                    placeholder="Search rides, combos..." 
+                    placeholder="Search catalog..." 
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                 />
@@ -82,26 +166,40 @@ export default function POSView() {
             </div>
 
             <div className="pos-grid">
-                {filteredItems.map(item => {
-                    const qty = cart[item.id] || 0
-                    return (
-                        <div 
-                            key={item.id} 
-                            className={`pos-item ${qty > 0 ? 'in-cart' : ''}`}
-                            onClick={() => handleAddToCart(item.id)}
-                        >
-                            <span 
-                                className="pos-tier" 
-                                style={{ background: tierBg[item.tier], color: tierColors[item.tier] }}
+                {itemsLoading ? (
+                    <div className="col-span-4">
+                        <ListLoadingState title="Loading catalog" description="Fetching items and prices…" />
+                    </div>
+                ) : fetchedItems.length === 0 ? (
+                    <div className="col-span-4">
+                        <ListEmptyState
+                            title="No items match"
+                            description="Try another search term or filter—or confirm your price list in POS profile."
+                        />
+                    </div>
+                ) : (
+                    fetchedItems.map((item: any, idx: number) => {
+                        const qty = cart[item.item_code]?.qty || 0
+                        const tier = getTierColor(idx)
+                        return (
+                            <div 
+                                key={item.item_code} 
+                                className={`pos-item ${qty > 0 ? 'in-cart' : ''}`}
+                                onClick={() => handleAddToCart(item)}
                             >
-                                {item.tier}
-                            </span>
-                            <div className="pos-name">{item.name}</div>
-                            <div className="pos-price">&#8377;{item.price}</div>
-                            {qty > 0 && <div className="pos-qty">{qty}</div>}
-                        </div>
-                    )
-                })}
+                                <span 
+                                    className="pos-tier" 
+                                    style={{ background: tier.bg, color: tier.text }}
+                                >
+                                    {item.item_group ? item.item_group.substring(0, 8) : 'Item'}
+                                </span>
+                                <div className="pos-name">{item.item_name}</div>
+                                <div className="pos-price">&#8377;{item.price_list_rate || 0}</div>
+                                {qty > 0 && <div className="pos-qty">{qty}</div>}
+                            </div>
+                        )
+                    })
+                )}
             </div>
 
             {cartCount > 0 && (
@@ -123,37 +221,64 @@ export default function POSView() {
                             <div className="cart-clear" onClick={() => { setCart({}); setIsCartOpen(false) }}>Clear all</div>
                         </div>
                         <div className="cart-items">
-                            {Object.entries(cart).map(([k, qty]) => {
-                                const item = posItems.find(i => i.id === Number(k))
-                                if (!item) return null
+                            {Object.entries(cart).map(([itemCode, { qty, item }]) => {
                                 return (
-                                    <div key={item.id} className="cart-line">
+                                    <div key={itemCode} className="cart-line">
                                         <div className="cart-line-body">
-                                            <div className="cart-line-name">{item.name}</div>
-                                            <div className="cart-line-price">&#8377;{item.price} each</div>
+                                            <div className="cart-line-name">{item.item_name}</div>
+                                            <div className="cart-line-price">&#8377;{item.price_list_rate || 0} each</div>
                                         </div>
                                         <div className="cart-qty-ctrl">
-                                            <div className="cart-qty-btn" onClick={() => changeQty(item.id, -1)}>-</div>
+                                            <div className="cart-qty-btn" onClick={() => changeQty(itemCode, -1)}>-</div>
                                             <div className="cart-qty-val">{qty}</div>
-                                            <div className="cart-qty-btn" onClick={() => changeQty(item.id, 1)}>+</div>
+                                            <div className="cart-qty-btn" onClick={() => changeQty(itemCode, 1)}>+</div>
                                         </div>
-                                        <div className="cart-line-total">&#8377;{(item.price * qty).toLocaleString('en-IN')}</div>
+                                        <div className="cart-line-total">&#8377;{((item.price_list_rate || 0) * qty).toLocaleString('en-IN')}</div>
                                     </div>
                                 )
                             })}
-                            {cartCount === 0 && (
-                                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-3)', fontSize: 14 }}>
-                                    Cart is empty
-                                </div>
-                            )}
                         </div>
                         <div className="cart-footer">
                             <div className="cart-summary">
                                 <span className="cart-summary-label">Total</span>
                                 <span className="cart-summary-val">&#8377;{cartTotal.toLocaleString('en-IN')}</span>
                             </div>
-                            <button className="checkout-btn" onClick={() => setIsCartOpen(false)}>
+                            <button className="checkout-btn" onClick={() => setIsCheckoutOpen(true)}>
                                 Checkout &middot; &#8377;{cartTotal.toLocaleString('en-IN')}
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Payment Checkout Overlay */}
+            {isCheckoutOpen && (
+                <>
+                    <div className="cart-backdrop open" onClick={() => !isCheckingOut && setIsCheckoutOpen(false)} style={{ zIndex: 120 }}></div>
+                    <div className="cart-drawer open" style={{ zIndex: 121, height: 'auto', maxHeight: '80vh', bottom: 0, top: 'auto' }}>
+                        <div className="cart-header">
+                            <div className="cart-title">Payment</div>
+                            <div className="cart-clear" onClick={() => !isCheckingOut && setIsCheckoutOpen(false)}>Cancel</div>
+                        </div>
+                        <div className="cart-items" style={{ padding: '24px 16px' }}>
+                            <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                                <div style={{ fontSize: 14, color: 'var(--text-3)', marginBottom: 4 }}>Amount Due</div>
+                                <div style={{ fontSize: 32, fontWeight: 600 }}>&#8377;{cartTotal.toLocaleString('en-IN')}</div>
+                            </div>
+                            
+                            <div className="chip-row" style={{ justifyContent: 'center', marginBottom: 24 }}>
+                                <div className="chip active">Cash</div>
+                                <div className="chip">Card</div>
+                                <div className="chip">UPI</div>
+                            </div>
+
+                            <button 
+                                className="checkout-btn" 
+                                style={{ width: '100%', opacity: isCheckingOut ? 0.7 : 1 }}
+                                onClick={handleConfirmPayment}
+                                disabled={isCheckingOut}
+                            >
+                                {isCheckingOut ? 'Processing...' : 'Confirm Payment'}
                             </button>
                         </div>
                     </div>

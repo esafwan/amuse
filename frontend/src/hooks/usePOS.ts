@@ -17,6 +17,14 @@ export function useCreateOpeningEntry() {
     })
 }
 
+export function usePOSProfile(name?: string) {
+    return useQuery({
+        queryKey: ['pos', 'profile', name],
+        queryFn: () => callMethod<any>('amuse.api.pos.get_profile', { pos_profile: name }),
+        enabled: !!name,
+    })
+}
+
 export function usePOSItems(params: { price_list: string; pos_profile: string; search_term?: string }) {
     return useQuery({
         queryKey: ['pos', 'items', params],
