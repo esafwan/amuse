@@ -1,5 +1,6 @@
 import { RefreshCw, Search } from 'lucide-react'
 import { usePriceChangeLogs, useTriggerSnapshotRebuild } from '../hooks/usePricing'
+import { ListEmptyState, ListLoadingState } from '../components/AppState'
 
 export default function ExceptionCenter() {
     const { data: logs, isLoading } = usePriceChangeLogs()
@@ -23,11 +24,12 @@ export default function ExceptionCenter() {
                 </div>
 
                 {isLoading ? (
-                    <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-3)' }}>Scanning queues...</div>
+                    <ListLoadingState title="Scanning queues" description="Checking for failed snapshot jobs…" />
                 ) : failedLogs.length === 0 ? (
-                    <div style={{ padding: 48, textAlign: 'center', color: 'var(--accent)', fontWeight: 500 }}>
-                        No exceptions found. All pipelines nominal.
-                    </div>
+                    <ListEmptyState
+                        title="All clear"
+                        description="No exceptions found. Pricing pipelines are nominal."
+                    />
                 ) : (
                     failedLogs.map((log: any) => (
                         <div key={log.name} className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

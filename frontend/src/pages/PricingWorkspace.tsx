@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { usePriceChangeLogs } from '../hooks/usePricing'
 import { Search } from 'lucide-react'
 import PriceImpactDashboard from './PriceImpactDashboard'
+import { ListLoadingState } from '../components/AppState'
 
 export default function PricingWorkspace() {
     const { data: logs, isLoading } = usePriceChangeLogs()
@@ -58,7 +59,7 @@ export default function PricingWorkspace() {
                 </div>
 
                 {isLoading ? (
-                    <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>Loading ledgers...</div>
+                    <ListLoadingState title="Loading ledgers" description="Pulling price change history…" />
                 ) : (
                     <>
                         {logs?.map((log: any) => {
@@ -68,7 +69,7 @@ export default function PricingWorkspace() {
                             const pillClass = isFailed ? 'pill-red' : isCompleted ? 'pill-green' : 'pill-amber'
 
                             return (
-                                <div key={log.name} className="list-item" onClick={() => setSelectedLog(isSelected ? null : log.name)}>
+                                <div key={log.name} className="app-list-row" onClick={() => setSelectedLog(isSelected ? null : log.name)}>
                                     <div className="list-avatar" style={{ background: isFailed ? 'var(--red-bg)' : isCompleted ? 'var(--accent-bg)' : 'var(--amber-bg)', color: isFailed ? 'var(--red)' : isCompleted ? 'var(--accent-text)' : 'var(--amber)' }}>
                                         {log.item_name?.substring(0, 2).toUpperCase() || 'IT'}
                                     </div>
