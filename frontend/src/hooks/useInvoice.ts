@@ -11,7 +11,7 @@ export function useInvoiceList(params?: any) {
 export function useInvoiceDetails(name: string) {
     return useQuery({
         queryKey: ['invoices', 'detail', name],
-        queryFn: () => callMethod('amuse.api.billing.get_invoice', { name }),
+        queryFn: () => callMethod<any>('amuse.api.billing.get_invoice', { name }),
         enabled: !!name,
     })
 }
