@@ -4,7 +4,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>amuse</title>
+    <!-- Basic Frappe global setup -->
+    <script>
+      window.frappe = { boot: null };
+      frappe.csrf_token = "{{ csrf_token | default('') }}";
+      // To support some older apps or utilities that expect csrf_token globally
+      window.csrf_token = frappe.csrf_token;
+    </script>
+    <!-- Jinja Injection (Will syntax error in Vite dev, but succeed in Frappe prod) -->
+    <script>
+      const bootJson = {{ boot_json | default("null") }};
+      Object.assign(window.frappe, { boot: bootJson });
+    </script>
   </head>
   <body>
     <div id="root"></div>
