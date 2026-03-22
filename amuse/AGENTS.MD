@@ -26,3 +26,12 @@ For end-to-end verification, you can run commands inside the running docker cont
 ## 5. Capturing Problems (Compound Docs)
 Any time of deep debugging or non-trivial fixes occur, use the `compound-docs` skill to capture the problem/fix in `docs/solutions/`.
 - Validate the solution via MCP, bench console, or the browser UI before capturing it.
+
+## 6. Definition of Done (Mandatory Sync)
+An agent's task or phase is NOT considered "Done" until the following artifacts are synchronized with the repository:
+1. **Implementation Plan**: A corresponding `.md` file in `docs/plans/` must exist for the completed phase.
+2. **Solution Log**: Any significant bugs or build hurdles (like native binding errors) MUST be documented in `docs/solutions/`.
+3. **Internal Task Tracker**: If using a private `task.md` or brainstorming document, the final state must be communicated or summarized in the repository's documentation.
+4. **Commit & Push**: All code and documentation must be committed and pushed to the remote repository before the final user notification.
+
+**DO NOT ask for permission to document. It is a core project requirement.**
