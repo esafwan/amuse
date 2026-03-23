@@ -465,6 +465,173 @@ body { font-family:var(--font); background:var(--bg); color:var(--text-1); }
 .cart-bar-label { flex:1; font-size:14px; font-weight:500; }
 .cart-bar-total { font-size:18px; font-weight:600; }
 
+button.cart-bar {
+  font: inherit;
+  font-family: var(--font);
+  border: none;
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: left;
+}
+
+/* POS cart / payment — shares .customer-detail side panel */
+.pos-panel-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.pos-cart-lines {
+  flex: 1;
+  min-height: 0;
+}
+.pos-cart-line {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+.pos-cart-line:first-child {
+  padding-top: 4px;
+}
+.pos-cart-line-top {
+  margin-bottom: 12px;
+}
+.pos-cart-line-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+  line-height: 1.35;
+}
+.pos-cart-line-unit {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 4px;
+}
+.pos-cart-line-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pos-cart-qty-row {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+.pos-cart-qty-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: var(--surface-2);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font);
+  line-height: 1;
+  transition: background 0.12s;
+}
+.pos-cart-qty-btn:hover {
+  background: var(--surface);
+}
+.pos-cart-qty-btn:active {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+.pos-cart-qty-val {
+  min-width: 40px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-1);
+  padding: 0 4px;
+}
+.pos-cart-line-total {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-1);
+  flex-shrink: 0;
+}
+.pos-cart-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0 8px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.pos-cart-summary-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.pos-cart-summary-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-1);
+  letter-spacing: -0.02em;
+}
+.pos-checkout-btn {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.pos-checkout-btn:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.pos-checkout-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+.pos-payment-body {
+  padding-top: 8px;
+}
+.pos-payment-due-label {
+  font-size: 13px;
+  color: var(--text-3);
+  text-align: center;
+  margin-bottom: 6px;
+}
+.pos-payment-due-amount {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: -0.03em;
+  color: var(--text-1);
+  margin-bottom: 24px;
+}
+.pos-payment-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.pos-payment-modes .chip.pos-chip-soon {
+  opacity: 0.5;
+  cursor: default;
+}
+.pos-payment-hint {
+  font-size: 12px;
+  color: var(--text-3);
+  text-align: center;
+  line-height: 1.45;
+  margin-bottom: 24px;
+}
+
 /* Not .list-item — Tailwind maps that utility to display:list-item */
 .app-list-row { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--surface); margin-bottom:1px; cursor:pointer; transition:background .08s; }
 .app-list-row:first-child { border-radius:var(--radius) var(--radius) 0 0; }
@@ -535,6 +702,24 @@ body { font-family:var(--font); background:var(--bg); color:var(--text-1); }
   font-weight: 600;
   color: var(--text-1);
   letter-spacing: -0.02em;
+}
+.cd-header-link {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 4px;
+  font-family: var(--font);
+}
+.cd-header-link:hover {
+  text-decoration: underline;
+}
+.cd-header-spacer {
+  width: 44px;
+  flex-shrink: 0;
 }
 .cd-profile {
   flex: 1;
@@ -773,15 +958,7 @@ button.cd-action:disabled {
     border-left: 1px solid var(--border);
   }
 
-  /* --- Problem 7: Cart drawer → right-side panel --- */
-  .cart-drawer {
-    max-width:400px;
-    left:auto !important;
-    right:0 !important;
-    border-radius:var(--radius) 0 0 var(--radius);
-    box-shadow:-8px 0 24px rgba(0,0,0,0.08);
-  }
-  .cart-bar { width:100%; max-width:none; margin:0 0 8px; padding:0 var(--content-pad-x); box-sizing:border-box; }
+  .cart-bar { width:100%; max-width:none; margin:0 0 8px; padding:12px var(--content-pad-x); box-sizing:border-box; }
 
   /* --- Topbar: full width --- */
   .topbar {
