@@ -11,6 +11,61 @@ from typing import Any
 
 import frappe
 from frappe import _
+from frappe.utils import flt
+
+
+def _default_mode_of_payment_for_pos(pos_profile: str | None) -> str | None:
+	"""First default MOP from POS Profile, else first enabled Mode of Payment."""
+	if pos_profile:
+		mop = frappe.db.get_value(
+			"POS Profile Payment",
+			{"parent": pos_profile, "default": 1},
+			"mode_of_payment",
+		)
+		if mop:
+			return mop
+		mop = frappe.db.sql(
+			"""
+			SELECT mode_of_payment FROM `tabPOS Profile Payment`
+			WHERE parent=%s ORDER BY idx ASC LIMIT 1
+			""",
+			(pos_profile,),
+		)
+		if mop:
+			return mop[0][0]
+	return frappe.db.get_value(
+		"Mode of Payment",
+		filters={"enabled": 1},
+		fieldname="name",
+		order_by="name asc",
+	)
+
+
+def _ensure_pos_payments(si) -> bool:
+	"""
+	ERPNext requires at least one Sales Invoice Payment row for POS invoices
+	(see ``validate_pos_paid_amount``). SPA checkout may omit ``payments``;
+	append a full-amount line using the POS Profile default mode of payment.
+	"""
+	if not getattr(si, "is_pos", None):
+		return False
+	if flt(si.grand_total) <= 0:
+		return False
+	if si.get("payments") and len(si.payments) > 0:
+		return False
+	mode = _default_mode_of_payment_for_pos(si.get("pos_profile"))
+	if not mode:
+		frappe.throw(
+			_(
+				"No Mode of Payment found. Add payment modes to the POS Profile "
+				"or create an enabled Mode of Payment."
+			)
+		)
+	si.append(
+		"payments",
+		{"mode_of_payment": mode, "amount": flt(si.grand_total)},
+	)
+	return True
 
 
 # ---------------------------------------------------------------------------
@@ -96,6 +151,8 @@ def create_invoice(doc: str | dict) -> dict[str, Any]:
 
 	si = frappe.get_doc(doc)
 	si.insert()
+	if _ensure_pos_payments(si):
+		si.save()
 	return si.as_dict()
 
 
@@ -106,6 +163,8 @@ def submit_invoice(name: str) -> dict[str, Any]:
 	Runs full ERPNext validation (``calculate_taxes_and_totals``, GL posting, etc.).
 	"""
 	si = frappe.get_doc("Sales Invoice", name)
+	if _ensure_pos_payments(si):
+		si.save()
 	si.submit()
 	return si.as_dict()
 
