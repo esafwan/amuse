@@ -3,7 +3,7 @@
 Run:
   bench --site amuse.localhost execute amuse.verify_site.run
 
-Prints DB counts and calls each Amuse API once (no assertions — suitable for ops checks).
+Logs via ``frappe.logger("amuse.verify_site")`` and returns the same report string for `bench execute`.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ from amuse.api import price_change as price_change_api
 
 def run():
     """Return a report string; safe for `bench execute` (runs as Administrator)."""
+    log = frappe.logger("amuse.verify_site")
     lines = []
     lines.append("=== Amuse / ERPNext site check ===")
     lines.append(f"Site: {frappe.local.site}")
@@ -67,7 +68,9 @@ def run():
     except Exception as e:
         lines.append(f"get_price_change_log_list ERROR: {e}")
 
-    return "\n".join(lines)
+    report = "\n".join(lines)
+    log.info(report)
+    return report
 
 
 if __name__ == "__main__":

@@ -2,8 +2,10 @@
 
 Run:
   bench --site amuse.localhost execute amuse.seed_demo.run
+  bench --site amuse.localhost execute amuse.seed_demo.run --kwargs "{'company': 'My Company'}"
 
 Safe to run multiple times; skips existing documents by name.
+Warehouse and account names match the default company preset (Funtartica / * - Fun).
 """
 
 from __future__ import annotations
@@ -11,7 +13,7 @@ from __future__ import annotations
 import frappe
 from frappe import _
 
-COMPANY = "Funtartica"
+DEFAULT_COMPANY = "Funtartica"
 PRICE_LIST = "Standard Selling"
 WAREHOUSE = "Stores - Fun"
 INCOME_ACCOUNT = "Sales - Fun"
@@ -29,7 +31,16 @@ WRITE_OFF_ACCOUNT = "Write Off - Fun"
 CURRENCY = "INR"
 
 
-def _ensure_items() -> list[str]:
+def _resolve_company(override: str | None = None) -> str | None:
+    """Prefer explicit name, then default preset, then any Company on the site."""
+    if override and frappe.db.exists("Company", override):
+        return override
+    if frappe.db.exists("Company", DEFAULT_COMPANY):
+        return DEFAULT_COMPANY
+    return frappe.db.get_value("Company", {}, "name")
+
+
+def _ensure_items(company: str) -> list[str]:
     created = []
     for item_code, item_name, rate in ITEMS:
         if frappe.db.exists("Item", item_code):
@@ -45,7 +56,7 @@ def _ensure_items() -> list[str]:
                 "include_item_in_manufacturing": 0,
                 "item_defaults": [
                     {
-                        "company": COMPANY,
+                        "company": company,
                         "default_warehouse": WAREHOUSE,
                         "income_account": INCOME_ACCOUNT,
                         "default_cogs_account": COGS_ACCOUNT,
@@ -75,7 +86,7 @@ def _ensure_items() -> list[str]:
     return created
 
 
-def _stock_in() -> None:
+def _stock_in(company: str) -> None:
     """Put qty on hand so Sales Invoice / POS can sell."""
     for item_code, _, _ in ITEMS:
         if not frappe.db.exists("Item", item_code):
@@ -95,7 +106,7 @@ def _stock_in() -> None:
             {
                 "doctype": "Stock Entry",
                 "stock_entry_type": "Material Receipt",
-                "company": COMPANY,
+                "company": company,
                 "items": [
                     {
                         "item_code": item_code,
@@ -131,7 +142,7 @@ def _ensure_customer() -> str | None:
     return doc.name
 
 
-def _ensure_pos_opening() -> str:
+def _ensure_pos_opening(company: str) -> str:
     """Submit POS Opening Entry for Administrator so POS screen sees an active session."""
     from amuse.api import pos as pos_api
 
@@ -139,13 +150,13 @@ def _ensure_pos_opening() -> str:
         return "already open"
     pos_api.create_opening(
         pos_profile=POS_PROFILE_NAME,
-        company=COMPANY,
+        company=company,
         balance_details=[{"mode_of_payment": "Cash", "opening_amount": 500}],
     )
     return "opened"
 
 
-def _ensure_pos_profile(customer_name: str) -> str | None:
+def _ensure_pos_profile(company: str, customer_name: str) -> str | None:
     """POS Profile for POS screen (get_items / get_profile). Requires explicit name (Prompt autoname)."""
     if frappe.db.exists("POS Profile", POS_PROFILE_NAME):
         return POS_PROFILE_NAME
@@ -155,7 +166,7 @@ def _ensure_pos_profile(customer_name: str) -> str | None:
         {
             "doctype": "POS Profile",
             "name": POS_PROFILE_NAME,
-            "company": COMPANY,
+            "company": company,
             "warehouse": WAREHOUSE,
             "customer": customer_name,
             "selling_price_list": PRICE_LIST,
@@ -172,7 +183,7 @@ def _ensure_pos_profile(customer_name: str) -> str | None:
     return doc.name
 
 
-def _ensure_draft_invoice(customer_name: str) -> str | None:
+def _ensure_draft_invoice(company: str, customer_name: str) -> str | None:
     """One draft SI if none exist for demo customer."""
     found = frappe.db.exists(
         "Sales Invoice",
@@ -196,7 +207,7 @@ def _ensure_draft_invoice(customer_name: str) -> str | None:
     si = frappe.get_doc(
         {
             "doctype": "Sales Invoice",
-            "company": COMPANY,
+            "company": company,
             "customer": customer_name,
             "posting_date": frappe.utils.today(),
             "due_date": frappe.utils.add_days(frappe.utils.today(), 7),
@@ -209,21 +220,26 @@ def _ensure_draft_invoice(customer_name: str) -> str | None:
     return si.name
 
 
-def run() -> str:
-    """Seed demo data; returns a text report."""
-    lines: list[str] = ["=== Amuse seed_demo ===", f"Site: {frappe.local.site}"]
-    if not frappe.db.exists("Company", COMPANY):
-        lines.append(f"ERROR: Company {COMPANY!r} not found.")
-        return "\n".join(lines)
+def run(company: str | None = None) -> str:
+    """Seed demo data; returns a text report.
 
-    new_items = _ensure_items()
+    :param company: Optional Company name. Defaults to ``Funtartica`` if present, else first Company.
+    """
+    lines: list[str] = ["=== Amuse seed_demo ===", f"Site: {frappe.local.site}"]
+    co = _resolve_company(company)
+    if not co:
+        lines.append("ERROR: No Company found on site.")
+        return "\n".join(lines)
+    lines.append(f"Company: {co}")
+
+    new_items = _ensure_items(co)
     lines.append(f"New items: {new_items or '(none — already present)'}")
 
     cust = _ensure_customer()
     lines.append(f"Customer: {cust}")
 
     try:
-        pos = _ensure_pos_profile(cust) if cust else None
+        pos = _ensure_pos_profile(co, cust) if cust else None
         lines.append(f"POS Profile: {pos or '(skipped)'}")
     except Exception as e:
         lines.append(f"POS Profile ERROR: {e}")
@@ -231,20 +247,20 @@ def run() -> str:
 
     try:
         if frappe.db.exists("POS Profile", POS_PROFILE_NAME):
-            o = _ensure_pos_opening()
+            o = _ensure_pos_opening(co)
             lines.append(f"POS opening session: {o}")
     except Exception as e:
         lines.append(f"POS opening ERROR: {e}")
         frappe.db.rollback()
 
     try:
-        _stock_in()
+        _stock_in(co)
         lines.append("Stock entries: ok (material receipt where needed)")
     except Exception as e:
         lines.append(f"Stock entries WARNING: {e}")
         frappe.db.rollback()
 
-    inv = _ensure_draft_invoice(cust) if cust else None
+    inv = _ensure_draft_invoice(co, cust) if cust else None
     lines.append(f"Draft Sales Invoice: {inv or '(skipped)'}")
 
     lines.append("Done.")

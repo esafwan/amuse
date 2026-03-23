@@ -624,7 +624,7 @@ After executing this plan, the Amuse app will:
 
 | Group | Focus | Status | Notes |
 |-------|--------|--------|--------|
-| **1** | Backend infra (hooks, snapshot, attribution) | **Mostly done** | `Item Price` `doc_events` registered; `process_regime_snapshot` aggregates SI lines and attributes discounts (pricing rule vs manual vs distributed; coupon vs invoice-level split; promotional scheme left 0 until ERPNext linkage is defined). |
+| **1** | Backend infra (hooks, snapshot, attribution) | **Done** | Item Price hooks + company resolution from Item Default; snapshot + discount buckets; `seed_pricing_intel_demo` for QA. |
 | **2** | Capabilities, DocTypes, permissions API | **Not started** | `amuse/permissions.py`, Amuse Role DocTypes not in tree. |
 | **3** | Frontend permissions, Users/Roles pages | **Not started** | Depends on Group 2. |
 | **4** | POS print receipt, Billing new invoice, gating | **Partial** | POS panel UX fixed; print receipt flow + new invoice form + capability gating still open. |

@@ -101,6 +101,12 @@ bench --site amuse.localhost run-tests --module amuse.tests.test_api_smoke --lig
 # Idempotent demo seed (items, prices, POS Profile, POS opening session, customer, stock, draft SI)
 bench --site amuse.localhost execute amuse.seed_demo.run
 
+# Optional company override (defaults to Funtartica or first Company)
+bench --site amuse.localhost execute amuse.seed_demo.run --kwargs "{'company': 'Funtartica'}"
+
+# Pricing Intelligence E2E: submit demo SI, bump Item Price, run snapshot (after seed_demo)
+bench --site amuse.localhost execute amuse.seed_pricing_intel_demo.run
+
 # DB counts + in-process API calls
 bench --site amuse.localhost execute amuse.verify_site.run
 

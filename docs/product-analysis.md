@@ -38,22 +38,13 @@ Amuse is an ERPNext-based management system for **water parks, theme parks, and 
 
 ### 2.1 Analytics are a stub
 
-`analytics_snapshot.py` computes only `days_active`; all other fields (revenue, qty, discount attribution, customer metrics) are zero-initialized. The Price Impact Dashboard therefore always shows zeros for the most important KPIs.
+**Status (2026-03): Addressed.** `process_regime_snapshot()` aggregates submitted `Sales Invoice Item` rows for the prior regime window (qty, revenue, customer metrics, discount splits). Run `bench execute amuse.seed_pricing_intel_demo.run` after `seed_demo` to create a `Price Change Log` and a completed snapshot for QA.
 
-**Impact**: Pricing Workspace is misleading to operators who expect real data.
+**Residual risk**: KPI quality depends on Item Price `valid_from` / `valid_upto` covering invoice posting dates.
 
 ### 2.2 No Item Price hook wired in hooks.py
 
-`price_change_detector.handle_item_price_change` exists but is never registered. Price changes made in ERPNext Desk will not be tracked.
-
-```python
-# Missing from hooks.py:
-doc_events = {
-    "Item Price": {
-        "on_update": "amuse.services.price_change_detector.handle_item_price_change"
-    }
-}
-```
+**Status (2026-03): Addressed.** `hooks.py` registers `Item Price` `on_insert` / `on_update` → `handle_item_price_change`. Standard Item Price rows have no `company` field; the detector resolves company from `Item Default` so `Price Change Log` inserts succeed.
 
 ### 2.3 Invoice creation has no frontend UI
 
@@ -73,7 +64,7 @@ The app targets parks but has no concept of a ticket (entry passes, timed slots,
 
 ### 2.7 Discount attribution is unimplemented
 
-The `Price Change Log` schema has eight discount attribution fields (pricing rules, coupons, promotions, manual, residual). The computation that populates them is not written.
+**Status (2026-03): Partially addressed.** Pricing-rule vs manual line discount, distributed discount split (coupon vs invoice-level), and residual are populated from `Sales Invoice` / `Sales Invoice Item`. `promotional_scheme_discount_value` stays at zero until ERPNext exposes a reliable per-line promotional linkage for this site’s configuration.
 
 ### 2.8 Mobile layout is incomplete
 
@@ -147,14 +138,14 @@ Secondary (hamburger / settings — managers & admins)
 
 ### Phase A — Fix foundations (immediate)
 
-| Priority | Task |
-|---|---|
-| P0 | Wire `Item Price.on_update` hook in `hooks.py` |
-| P0 | Implement `analytics_snapshot.process_regime_snapshot()` — aggregate Sales Invoice items for the previous price regime window |
-| P0 | Add "New Invoice" form to Billing page |
-| P1 | Fix discount attribution computation in snapshot |
-| P1 | Add print receipt action to POS checkout success state |
-| P1 | Add role-based access guards to frontend pages |
+| Priority | Task | Status |
+|---|---|---|
+| P0 | Wire `Item Price` hooks in `hooks.py` | Done |
+| P0 | Implement `process_regime_snapshot()` — SI aggregation for prior regime | Done |
+| P0 | Add "New Invoice" form to Billing page | Open |
+| P1 | Discount attribution in snapshot | Done (promotional scheme TBD) |
+| P1 | Add print receipt action to POS checkout success state | Open |
+| P1 | Add role-based access guards to frontend pages | Open |
 
 ### Phase B — Ticketing & Admissions
 
@@ -292,12 +283,12 @@ Pricing Settings        → Already exists ✓
 | Debt | Location | Recommendation |
 |---|---|---|
 | All DocType JS files are stubs | `amuse/doctype/*/[name].js` | Implement or delete — stubs create confusion |
-| `analytics_snapshot.py` returns zeros | `services/analytics_snapshot.py` | Implement revenue/discount aggregation |
-| No hook registration | `hooks.py` | Add `doc_events` for `Item Price` |
+| `analytics_snapshot.py` returns zeros | `services/analytics_snapshot.py` | Implemented — see `process_regime_snapshot` |
+| No hook registration | `hooks.py` | `doc_events` for `Item Price` registered |
 | Frontend has no error boundaries | React pages | Add `<ErrorBoundary>` per page section |
 | No loading skeleton screens | All list pages | Replace spinner with content skeleton for better perceived performance |
-| `seed_demo.py` hardcodes company "Funtartica" | `seed_demo.py` | Accept company as parameter |
-| `verify_site.py` uses bare `print()` | `verify_site.py` | Use `frappe.logger()` or structured output |
+| `seed_demo.py` hardcodes company "Funtartica" | `seed_demo.py` | `run(company=None)` resolves default or first Company |
+| `verify_site.py` uses bare `print()` | `verify_site.py` | Logs via `frappe.logger("amuse.verify_site")` |
 | TanStack Query cache keys not namespaced | `frontend/src/hooks/` | Add prefix namespace to all query keys to avoid collisions |
 
 ---

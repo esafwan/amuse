@@ -1,6 +1,30 @@
 import frappe
 from amuse.services.price_change_logger import create_pending_price_change_log
 
+
+def _resolve_company_for_item_price(doc) -> str | None:
+    """
+    Standard Item Price has no company field; Price Change Log requires company.
+    Resolve from Item defaults, then global default, then any Company.
+    """
+    c = getattr(doc, "company", None)
+    if c:
+        return c
+    item_code = getattr(doc, "item_code", None)
+    if item_code:
+        row = frappe.db.get_value(
+            "Item Default",
+            {"parent": item_code, "parenttype": "Item"},
+            "company",
+        )
+        if row:
+            return row
+    c = frappe.db.get_single_value("Global Defaults", "default_company")
+    if c and frappe.db.exists("Company", c):
+        return c
+    return frappe.db.get_value("Company", {}, "name")
+
+
 def handle_item_price_change(doc, method=None):
     if not doc.get_doc_before_save():
         # Complete New Item Price configuration
@@ -41,7 +65,7 @@ def is_structural_price_change(doc, old_doc):
 def extract_change_context(doc, old_doc, change_type):
     return {
         "item": doc.item_code,
-        "company": doc.company,
+        "company": _resolve_company_for_item_price(doc),
         "price_list": doc.price_list,
         "currency": doc.currency,
         "change_type": change_type,
