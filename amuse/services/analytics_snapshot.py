@@ -35,7 +35,25 @@ def process_regime_snapshot(log_name):
 
     total_qty = flt(agg["total_qty"])
     total_revenue = flt(agg["total_revenue"])
-    total_discount_value = flt(agg["total_discount_value"])
+    item_level_discount = flt(agg["item_level_discount"])
+    distributed_company = flt(agg["distributed_company"])
+    total_discount_value = item_level_discount + distributed_company
+
+    pricing_rule_discount_value = flt(agg["pricing_rule_discount_value"])
+    manual_discount_value = flt(agg["manual_discount_value"])
+    invoice_level_discount_value = flt(agg["invoice_level_discount_value"])
+    coupon_discount_value = flt(agg["coupon_discount_value"])
+    promotional_scheme_discount_value = 0.0
+
+    attributed = (
+        pricing_rule_discount_value
+        + manual_discount_value
+        + invoice_level_discount_value
+        + coupon_discount_value
+        + promotional_scheme_discount_value
+    )
+    residual_discount_value = max(0.0, flt(total_discount_value - attributed))
+
     previous_rate = flt(doc.previous_rate or 0)
     expected_revenue_at_base_price = previous_rate * total_qty
     average_realized_price = (
@@ -71,6 +89,12 @@ def process_regime_snapshot(log_name):
             "average_realized_price": average_realized_price,
             "total_discount_value": total_discount_value,
             "discount_pct_vs_base": discount_pct_vs_base,
+            "pricing_rule_discount_value": pricing_rule_discount_value,
+            "promotional_scheme_discount_value": promotional_scheme_discount_value,
+            "coupon_discount_value": coupon_discount_value,
+            "invoice_level_discount_value": invoice_level_discount_value,
+            "manual_discount_value": manual_discount_value,
+            "residual_discount_value": residual_discount_value,
             "unique_customers": unique_customers,
             "new_customers": new_customers,
             "revenue_per_customer": revenue_per_customer,
@@ -88,6 +112,12 @@ def _empty_aggregates():
         "average_realized_price": 0.0,
         "total_discount_value": 0.0,
         "discount_pct_vs_base": 0.0,
+        "pricing_rule_discount_value": 0.0,
+        "promotional_scheme_discount_value": 0.0,
+        "coupon_discount_value": 0.0,
+        "invoice_level_discount_value": 0.0,
+        "manual_discount_value": 0.0,
+        "residual_discount_value": 0.0,
         "unique_customers": 0,
         "new_customers": 0,
         "revenue_per_customer": 0.0,
@@ -108,12 +138,12 @@ def _snapshot_payload(days_active, aggregates):
         "average_realized_price": base["average_realized_price"],
         "total_discount_value": base["total_discount_value"],
         "discount_pct_vs_base": base["discount_pct_vs_base"],
-        "pricing_rule_discount_value": 0.0,
-        "promotional_scheme_discount_value": 0.0,
-        "coupon_discount_value": 0.0,
-        "invoice_level_discount_value": 0.0,
-        "manual_discount_value": 0.0,
-        "residual_discount_value": 0.0,
+        "pricing_rule_discount_value": base["pricing_rule_discount_value"],
+        "promotional_scheme_discount_value": base["promotional_scheme_discount_value"],
+        "coupon_discount_value": base["coupon_discount_value"],
+        "invoice_level_discount_value": base["invoice_level_discount_value"],
+        "manual_discount_value": base["manual_discount_value"],
+        "residual_discount_value": base["residual_discount_value"],
         "unique_customers": base["unique_customers"],
         "new_customers": base["new_customers"],
         "revenue_per_customer": base["revenue_per_customer"],
@@ -121,7 +151,7 @@ def _snapshot_payload(days_active, aggregates):
 
 
 def _aggregate_sales_invoice_lines(item, company, valid_from, valid_upto):
-    """Sum metrics for one item in the regime window (submitted SI, non-return)."""
+    """Sum metrics and discount buckets for one item in the regime window."""
     rows = frappe.db.sql(
         """
         SELECT
@@ -132,7 +162,51 @@ def _aggregate_sales_invoice_lines(item, company, valid_from, valid_upto):
                     0,
                     COALESCE(sii.base_amount, 0) - COALESCE(sii.base_net_amount, 0)
                 )
-            ), 0) AS total_discount_value,
+            ), 0) AS item_level_discount,
+            COALESCE(SUM(
+                COALESCE(sii.distributed_discount_amount, 0)
+                * COALESCE(si.conversion_rate, 1)
+            ), 0) AS distributed_company,
+            COALESCE(SUM(
+                CASE
+                    WHEN NULLIF(TRIM(IFNULL(sii.pricing_rules, '')), '') IS NOT NULL
+                    THEN GREATEST(
+                        0,
+                        COALESCE(sii.base_amount, 0) - COALESCE(sii.base_net_amount, 0)
+                    )
+                    ELSE 0
+                END
+            ), 0) AS pricing_rule_discount_value,
+            COALESCE(SUM(
+                CASE
+                    WHEN NULLIF(TRIM(IFNULL(sii.pricing_rules, '')), '') IS NULL
+                    AND (
+                        IFNULL(sii.discount_percentage, 0) > 0
+                        OR IFNULL(sii.discount_amount, 0) > 0
+                    )
+                    THEN GREATEST(
+                        0,
+                        COALESCE(sii.base_amount, 0) - COALESCE(sii.base_net_amount, 0)
+                    )
+                    ELSE 0
+                END
+            ), 0) AS manual_discount_value,
+            COALESCE(SUM(
+                CASE
+                    WHEN IFNULL(si.coupon_code, '') != ''
+                    THEN COALESCE(sii.distributed_discount_amount, 0)
+                        * COALESCE(si.conversion_rate, 1)
+                    ELSE 0
+                END
+            ), 0) AS coupon_discount_value,
+            COALESCE(SUM(
+                CASE
+                    WHEN IFNULL(si.coupon_code, '') = ''
+                    THEN COALESCE(sii.distributed_discount_amount, 0)
+                        * COALESCE(si.conversion_rate, 1)
+                    ELSE 0
+                END
+            ), 0) AS invoice_level_discount_value,
             COUNT(*) AS transaction_count,
             COUNT(DISTINCT si.name) AS invoice_count,
             COUNT(DISTINCT si.customer) AS unique_customers
