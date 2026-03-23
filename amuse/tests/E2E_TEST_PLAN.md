@@ -54,7 +54,7 @@ As of last check, transactional data may be **empty** (no Items, Customers, Sale
 |-------|------------|------------------|---------------------|-------------------|
 | `/amuse/dashboard` | KPIs, quick actions, static demo rows | Mixed; billing list optional | `list_invoices` if wired | Demo list may be static; invoice section empty if no SI |
 | `/amuse/billing` | Invoice list + detail | `useInvoiceList`, `useInvoiceDetails`, `useSubmitInvoice` | `amuse.api.billing.list_invoices`, `get_invoice`, `submit_invoice` | Rows = `tabSales Invoice` |
-| `/amuse/pos` | POS grid, cart, checkout | `useOpeningEntry`, `usePOSProfile`, `usePOSItems`, `useCreateInvoice` | `check_opening`, `get_profile`, `get_items`, `create_invoice` | Needs **POS Profile**, **Items**, **price list**, often **opening entry** |
+| `/amuse/pos` | Open shift, grid, cart, checkout, close shift | `usePOSProfiles`, `useCreateOpeningEntry`, `useOpeningEntry`, `useClosingPreview`, `useSubmitPosClosing`, `usePOSProfile`, `usePOSItems`, `useCreateInvoice` | `list_pos_profiles`, `create_opening`, `check_opening`, `get_closing_preview`, `submit_pos_closing`, `get_profile`, `get_items`, `create_invoice` | **Sales Invoice** POS mode: `is_created_using_pos` on SI (set in API) for **POS Closing Entry**. Submit draft POS invoices before close. |
 | `/amuse/customers` | Customer list | `useCustomerList` / search | `list_customers`, `search_customers`, `get_customer` | Rows = `tabCustomer` |
 | `/amuse/pricing` | Price change logs | `usePricing` | `get_price_change_log_list`, `get_price_change_log`, `trigger_snapshot_rebuild`, `get_price_regime_summary` | `Price Change Log` docs |
 | `/amuse/exceptions` | Exceptions / jobs UI | pricing hooks | same + jobs | Depends on logs / queue |

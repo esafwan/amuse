@@ -11,6 +11,59 @@ import json
 from typing import Any
 
 import frappe
+from frappe import _
+from frappe.utils import flt
+
+
+def _is_privileged_pos_user() -> bool:
+	return frappe.session.user == "Administrator" or "System Manager" in frappe.get_roles()
+
+
+def _get_opening_or_throw(name: str):
+	if not name or not frappe.db.exists("POS Opening Entry", name):
+		frappe.throw(_("POS Opening Entry not found."))
+	return frappe.get_doc("POS Opening Entry", name)
+
+
+def _assert_can_access_opening(opening) -> None:
+	if opening.user != frappe.session.user and not _is_privileged_pos_user():
+		frappe.throw(_("You can only manage your own POS shift."), frappe.PermissionError)
+
+
+def _ensure_payment_reconciliation_from_opening_if_empty(closing, opening) -> None:
+	"""If no sales occurred, ERPNext returns no payment rows; seed from opening floats."""
+	if closing.get("payment_reconciliation") and len(closing.payment_reconciliation) > 0:
+		return
+	for bd in opening.balance_details or []:
+		closing.append(
+			"payment_reconciliation",
+			{
+				"mode_of_payment": bd.mode_of_payment,
+				"opening_amount": flt(bd.opening_amount),
+				"expected_amount": 0.0,
+				"closing_amount": flt(bd.opening_amount),
+			},
+		)
+
+
+def _parse_payment_table(raw: str | list | None) -> list[dict] | None:
+	if raw is None or raw == "":
+		return None
+	if isinstance(raw, str):
+		return json.loads(raw)
+	return raw
+
+
+def _apply_closing_amounts(closing, user_rows: list[dict] | None) -> None:
+	"""Set closing_amount on each reconciliation row (physical count end of shift)."""
+	if not user_rows:
+		for row in closing.payment_reconciliation:
+			row.closing_amount = flt(row.opening_amount) + flt(row.expected_amount)
+		return
+	by_mop = {r["mode_of_payment"]: flt(r.get("closing_amount", 0)) for r in user_rows}
+	for row in closing.payment_reconciliation:
+		if row.mode_of_payment in by_mop:
+			row.closing_amount = by_mop[row.mode_of_payment]
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +109,71 @@ def create_opening(
 		company=company,
 		balance_details=balance_details,
 	)
+
+
+@frappe.whitelist()
+def list_pos_profiles() -> list[dict]:
+	"""POS profiles the current user may use (applicable users, or all if privileged)."""
+	user = frappe.session.user
+	if _is_privileged_pos_user():
+		return frappe.get_all(
+			"POS Profile",
+			fields=["name", "company"],
+			order_by="name asc",
+			limit=100,
+		)
+	return frappe.db.sql(
+		"""
+		SELECT pp.name, pp.company
+		FROM `tabPOS Profile` pp
+		INNER JOIN `tabPOS Profile User` ppu
+			ON ppu.parent = pp.name AND ppu.user = %(user)s
+		ORDER BY pp.name
+		LIMIT 100
+		""",
+		{"user": user},
+		as_dict=True,
+	)
+
+
+@frappe.whitelist()
+def get_closing_preview(pos_opening_entry: str) -> dict[str, Any]:
+	"""Build an in-memory POS Closing Entry (not saved) for review in the SPA."""
+	opening = _get_opening_or_throw(pos_opening_entry)
+	if opening.status != "Open":
+		frappe.throw(_("Selected POS Opening Entry is not open."))
+	_assert_can_access_opening(opening)
+	from erpnext.accounts.doctype.pos_closing_entry.pos_closing_entry import (
+		make_closing_entry_from_opening,
+	)
+
+	closing = make_closing_entry_from_opening(opening)
+	_ensure_payment_reconciliation_from_opening_if_empty(closing, opening)
+	_apply_closing_amounts(closing, None)
+	return closing.as_dict()
+
+
+@frappe.whitelist()
+def submit_pos_closing(
+	pos_opening_entry: str,
+	payment_reconciliation: str | list | None = None,
+) -> dict[str, Any]:
+	"""Create and submit POS Closing Entry for the given opening (delegates to ERPNext)."""
+	opening = _get_opening_or_throw(pos_opening_entry)
+	if opening.status != "Open":
+		frappe.throw(_("Selected POS Opening Entry is not open."))
+	_assert_can_access_opening(opening)
+	from erpnext.accounts.doctype.pos_closing_entry.pos_closing_entry import (
+		make_closing_entry_from_opening,
+	)
+
+	closing = make_closing_entry_from_opening(opening)
+	_ensure_payment_reconciliation_from_opening_if_empty(closing, opening)
+	user_rows = _parse_payment_table(payment_reconciliation)
+	_apply_closing_amounts(closing, user_rows)
+	closing.insert()
+	closing.submit()
+	return closing.as_dict()
 
 
 # ---------------------------------------------------------------------------

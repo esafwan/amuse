@@ -61,6 +61,23 @@ class TestAmuseAPISmoke(FrappeTestCase):
         rows = pos_api.check_opening()
         self.assertIsInstance(rows, list)
 
+    def test_pos_list_profiles(self):
+        rows = pos_api.list_pos_profiles()
+        self.assertIsInstance(rows, list)
+
+    def test_pos_get_closing_preview_when_open(self):
+        name = frappe.db.get_value(
+            "POS Opening Entry",
+            {"status": "Open", "user": frappe.session.user},
+            "name",
+        )
+        if not name:
+            self.skipTest("No open POS session for current user")
+        prev = pos_api.get_closing_preview(name)
+        self.assertIsInstance(prev, dict)
+        self.assertEqual(prev.get("pos_opening_entry"), name)
+        self.assertIn("payment_reconciliation", prev)
+
     def test_price_change_log_list(self):
         msg = price_change_api.get_price_change_log_list()
         self.assertIsInstance(msg, dict)

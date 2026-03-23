@@ -148,6 +148,9 @@ def create_invoice(doc: str | dict) -> dict[str, Any]:
 
 	doc["doctype"] = "Sales Invoice"
 	doc.setdefault("docstatus", 0)
+	# POS Closing Entry only picks up SI rows with is_created_using_pos (ERPNext).
+	if doc.get("is_pos") and not doc.get("is_created_using_pos"):
+		doc["is_created_using_pos"] = 1
 
 	si = frappe.get_doc(doc)
 	si.insert()
