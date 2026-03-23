@@ -88,6 +88,7 @@ As of last check, transactional data may be **empty** (no Items, Customers, Sale
 - If you need to **log in at the Frappe login page** (Desk) to clear **`403 Forbidden`** on API calls, the **develop** environment uses user **`Administrator`** / password **`admin`**. Do not assume these credentials elsewhere; staging and production must use real accounts.
 - Automated browser checks should either: **log in via Desk first**, or use **API key** auth (REST) instead of the SPA `fetch` path.
 - **`user-frappe` MCP** uses API keys against `FRAPPE_URL`; align that URL with the site you compare to `bench` (see §4).
+- If the console reports **`Cannot set properties of null (setting 'innerHTML')`** on a route, the Amuse **source** does not use `innerHTML`; it is often a **browser extension**, **cached legacy bundle**, or **third-party script**. Hard-refresh, disable extensions for the site, or run `bench build --app amuse` and retry before treating it as an app bug.
 
 ---
 

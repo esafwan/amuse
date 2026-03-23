@@ -624,7 +624,7 @@ After executing this plan, the Amuse app will:
 
 | Group | Focus | Status | Notes |
 |-------|--------|--------|--------|
-| **1** | Backend infra (hooks, snapshot, attribution) | **In progress** | `Item Price` `doc_events` registered; `process_regime_snapshot` aggregates SI lines. Discount attribution (1.3) still open. |
+| **1** | Backend infra (hooks, snapshot, attribution) | **Mostly done** | `Item Price` `doc_events` registered; `process_regime_snapshot` aggregates SI lines and attributes discounts (pricing rule vs manual vs distributed; coupon vs invoice-level split; promotional scheme left 0 until ERPNext linkage is defined). |
 | **2** | Capabilities, DocTypes, permissions API | **Not started** | `amuse/permissions.py`, Amuse Role DocTypes not in tree. |
 | **3** | Frontend permissions, Users/Roles pages | **Not started** | Depends on Group 2. |
 | **4** | POS print receipt, Billing new invoice, gating | **Partial** | POS panel UX fixed; print receipt flow + new invoice form + capability gating still open. |
@@ -645,4 +645,5 @@ After executing this plan, the Amuse app will:
 | 2026-03-22 | Plan authored on branch `claude/agent-execution-plan-ycBCA`. |
 | 2026-03-22 | Merged into `docs/plans/` with metadata, GitHub links, and living progress log. |
 | 2026-03-22 | Progress log: Group 1 partial; verification pointer updated to `E2E_TEST_PLAN.md` (bench/Docker when browser fails). |
+| 2026-03-22 | Group 1.3: `process_regime_snapshot` attributes line and distributed discounts; `promotional_scheme_discount_value` remains 0 pending clearer ERPNext linkage. |
 
