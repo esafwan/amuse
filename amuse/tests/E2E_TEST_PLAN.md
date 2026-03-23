@@ -85,6 +85,7 @@ As of last check, transactional data may be **empty** (no Items, Customers, Sale
 
 - The SPA calls `/api/method/amuse.api.*` with **`X-Frappe-CSRF-Token`** and the user’s **session cookie**.
 - A browser tab that is **not logged in** to Frappe will typically see **`403`** on those endpoints even if the page shell loads.
+- If you need to **log in at the Frappe login page** (Desk) to clear **`403 Forbidden`** on API calls, use the usual local/dev site user: **`Administrator`**, password: **`admin`** (change this on any shared or production site).
 - Automated browser checks should either: **log in via Desk first**, or use **API key** auth (REST) instead of the SPA `fetch` path.
 - **`user-frappe` MCP** uses API keys against `FRAPPE_URL`; align that URL with the site you compare to `bench` (see §4).
 
