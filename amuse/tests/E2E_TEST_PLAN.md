@@ -4,6 +4,27 @@
 
 This document maps **UI routes** → **React hooks / API** → **Python methods** → **ERPNext DocTypes**, and lists how to verify each layer.
 
+## When the site is not reachable in the browser
+
+If `http://amuse.localhost:8002` (or your site URL) fails to load, or the IDE browser shows a Chrome error page, **do not treat verification as blocked** until you confirm the runtime environment.
+
+1. **Check whether `bench` is on `PATH`:** `command -v bench`
+2. **Check whether Docker is on `PATH`:** `command -v docker`
+
+**If Docker is available** (typical frappe_docker / devcontainer layout), the Frappe site may only run inside the app container. Open a shell there, then run the same `bench --site …` commands as below.
+
+Example (adjust the container name to match `docker ps`; one common name is `fdocker_devcontainer-frappe-1`):
+
+```bash
+docker exec -it fdocker_devcontainer-frappe-1 bash -c "cd /workspace/development/ainative/apps/amuse && exec bash"
+```
+
+From that shell, `bench` should resolve and the repo path should match your mounted workspace. Then run the checks in §6 (e.g. `run-tests`, `verify_site`).
+
+**If `bench` is on `PATH` and Docker is not** (local bench install), use the bench tree that contains this app — for this workspace that is usually `/workspace/development/ainative`. From that directory, ensure the dev server is running (`bench start` or your usual process manager) so the site answers HTTP, then re-run browser or CLI checks.
+
+---
+
 ## Current site snapshot (amuse.localhost)
 
 Run:
