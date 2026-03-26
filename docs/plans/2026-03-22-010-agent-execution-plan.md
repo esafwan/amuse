@@ -1,7 +1,7 @@
 # Amuse — Agent Execution Plan
 
 > **Date:** 2026-03-22
-> **Last progress sync:** 2026-03-22
+> **Last progress sync:** 2026-03-23
 > **Status:** Active execution plan
 > **Method:** Compound Engineering
 > **Source branch:** [`claude/agent-execution-plan-ycBCA`](https://github.com/esafwan/amuse/tree/claude/agent-execution-plan-ycBCA)
@@ -625,8 +625,8 @@ After executing this plan, the Amuse app will:
 | Group | Focus | Status | Notes |
 |-------|--------|--------|--------|
 | **1** | Backend infra (hooks, snapshot, attribution) | **Done** | Item Price hooks + company resolution from Item Default; snapshot + discount buckets; `seed_pricing_intel_demo` for QA. |
-| **2** | Capabilities, DocTypes, permissions API | **Not started** | `amuse/permissions.py`, Amuse Role DocTypes not in tree. |
-| **3** | Frontend permissions, Users/Roles pages | **Not started** | Depends on Group 2. |
+| **2** | Capabilities, DocTypes, permissions API | **Done** | `amuse/permissions.py`, Amuse Role / Amuse Role Permission / Amuse User Role, `api/permissions.py`, hooks (`permission_query_conditions`, `add_to_apps_screen.has_permission`, `after_install` + `after_migrate` seed), Frappe role sync on user bridge. Smoke tests in `test_api_smoke.py`. |
+| **3** | Frontend permissions, Users/Roles pages | **Done** | `PermissionsProvider` + `usePermissions`, `get_me` via TanStack Query (`amuse` query keys), gated bottom nav + `/more` hub, `UsersPage` / `RolesPage` / `SettingsPage`, `api/permissions.ts` + `usePermissions` mutations. |
 | **4** | POS print receipt, Billing new invoice, gating | **Partial** | POS panel UX fixed; print receipt flow + new invoice form + capability gating still open. |
 | **5** | Nav restructure, placeholders, error boundaries | **Not started** | Nav still Home·POS·Pricing·Customers·Exceptions. |
 | **6** | Tech debt (query keys, seed, verify_site, JS stubs) | **Not started** | |
@@ -646,4 +646,6 @@ After executing this plan, the Amuse app will:
 | 2026-03-22 | Merged into `docs/plans/` with metadata, GitHub links, and living progress log. |
 | 2026-03-22 | Progress log: Group 1 partial; verification pointer updated to `E2E_TEST_PLAN.md` (bench/Docker when browser fails). |
 | 2026-03-22 | Group 1.3: `process_regime_snapshot` attributes line and distributed discounts; `promotional_scheme_discount_value` remains 0 pending clearer ERPNext linkage. |
+| 2026-03-23 | Group 2 complete: capability catalogue, Amuse Role / Amuse Role Permission / Amuse User Role, permissions API, hooks, install + after_migrate seed, Frappe role sync, API smoke tests. |
+| 2026-03-23 | Group 3 complete: PermissionsContext, gated nav, More/Users/Roles/Settings pages, permission API client + hooks; `get_amuse_roles` returns `capabilities` per role for the SPA. |
 

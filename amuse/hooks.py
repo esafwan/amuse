@@ -20,6 +20,7 @@ add_to_apps_screen = [
 		"logo": "/assets/amuse/logo.png",
 		"title": "Amuse",
 		"route": "/amuse",
+		"has_permission": "amuse.permissions.check_app_permission",
 	}
 ]
 
@@ -88,7 +89,8 @@ add_to_apps_screen = [
 # ------------
 
 # before_install = "amuse.install.before_install"
-# after_install = "amuse.install.after_install"
+after_install = "amuse.install.after_install"
+after_migrate = "amuse.install.after_migrate"
 
 # Uninstallation
 # ------------
@@ -122,9 +124,10 @@ add_to_apps_screen = [
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
+permission_query_conditions = {
+	"Sales Invoice": "amuse.permissions.get_invoice_query_conditions",
+	"Price Change Log": "amuse.permissions.get_pcl_query_conditions",
+}
 #
 # has_permission = {
 # 	"Event": "frappe.desk.doctype.event.event.has_permission",
@@ -250,4 +253,31 @@ doc_events = {
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
+
+# Fixtures
+# --------
+# Export customizations to version control
+
+fixtures = [
+	# Custom Fields for ERPNext doctypes
+	{"dt": "Custom Field", "filters": [
+		["module", "=", "Amuse"]
+	]},
+	
+	# Property Setters
+	{"dt": "Property Setter", "filters": [
+		["doc_type", "in", ["Item Price", "Sales Invoice", "POS Invoice", "POS Opening Entry"]]
+	]},
+	
+	# Client Scripts for ERPNext doctypes  
+	{"dt": "Client Script", "filters": [
+		["module", "=", "Amuse"]
+	]},
+	
+	# Our custom DocTypes (non-custom, app doctypes)
+	{"dt": "DocType", "filters": [
+		["module", "=", "Amuse"],
+		["custom", "=", 0]
+	]},
+]
 

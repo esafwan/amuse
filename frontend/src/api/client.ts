@@ -15,6 +15,7 @@ export async function callMethod<T>(
 ): Promise<T> {
     const res = await fetch(`${BASE}/${method}`, {
         method: params ? 'POST' : 'GET',
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'X-Frappe-CSRF-Token': window.frappe?.csrf_token || '',

@@ -16,6 +16,7 @@ from frappe.tests.utils import FrappeTestCase
 from amuse.api import analytics as analytics_api
 from amuse.api import billing as billing_api
 from amuse.api import customers as customers_api
+from amuse.api import permissions as permissions_api
 from amuse.api import pos as pos_api
 from amuse.api import price_change as price_change_api
 
@@ -92,6 +93,28 @@ class TestAmuseAPISmoke(FrappeTestCase):
         out = analytics_api.get_price_regime_summary(name)
         self.assertIsInstance(out, dict)
         self.assertTrue(out.get("ok"))
+
+    def test_permissions_get_me_admin(self):
+        out = permissions_api.get_me()
+        self.assertIsInstance(out, dict)
+        self.assertEqual(out.get("user"), "Administrator")
+        self.assertIsInstance(out.get("capabilities"), list)
+        self.assertGreater(len(out["capabilities"]), 5)
+
+    def test_permissions_capabilities_catalogue_admin(self):
+        out = permissions_api.get_capabilities_catalogue()
+        self.assertIsInstance(out, dict)
+        caps = out.get("capabilities")
+        self.assertIsInstance(caps, list)
+        self.assertGreater(len(caps), 5)
+        self.assertIn("key", caps[0])
+        self.assertIn("label", caps[0])
+
+    def test_permissions_get_amuse_roles_admin(self):
+        rows = permissions_api.get_amuse_roles()
+        self.assertIsInstance(rows, list)
+        if frappe.db.exists("DocType", "Amuse Role") and frappe.db.count("Amuse Role"):
+            self.assertIn("role_name", rows[0])
 
 
 if __name__ == "__main__":

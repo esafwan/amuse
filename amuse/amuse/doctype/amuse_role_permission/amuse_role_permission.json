@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "creation": "2026-03-22 20:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "capability",
+  "label"
+ ],
+ "fields": [
+  {
+   "fieldname": "capability",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Capability",
+   "options": "billing.cancel\nbilling.create\nbilling.create_payment\nbilling.submit\nbilling.view\ncustomers.create\ncustomers.edit\ncustomers.view\npos.apply_discount\npos.close_session\npos.open_session\npos.use\npos.void_transaction\npricing.edit_prices\npricing.trigger_snapshot\npricing.view\npricing.view_analytics\nreports.export\nreports.view\nroles.manage\nsystem.exceptions\nsystem.settings\ntickets.issue\ntickets.redeem\ntickets.view\ntickets.view_capacity\ntickets.void\nusers.invite\nusers.manage",
+   "reqd": 1
+  },
+  {
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-22 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Amuse",
+ "name": "Amuse Role Permission",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": []
+}

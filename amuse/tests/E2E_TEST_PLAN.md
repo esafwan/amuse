@@ -35,6 +35,15 @@ bench --site amuse.localhost execute amuse.verify_site.run
 
 As of last check, transactional data may be **empty** (no Items, Customers, Sales Invoices, POS Profiles) while **Company** and chart scaffolding exist. The SPA should show **empty states** and still load without API errors. Seed ERPNext master data (Items, Customers, POS Profile, opening entry) before expecting POS/checkout E2E to succeed.
 
+**Bulk sample data (users + items + customers + invoices):** after `bench migrate` (Amuse Role DocTypes present), run:
+
+```bash
+bench --site <site> execute amuse.seed_sample_dataset.run
+# optional: --kwargs "{'company': 'Your Company', 'password': 'admin'}"
+```
+
+See `amuse/seed_sample_dataset.py` for seeded emails and default password.
+
 ---
 
 ## 1. Automated checks (implement / run)
