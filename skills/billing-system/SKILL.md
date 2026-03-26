@@ -97,6 +97,27 @@ Payment methods are configured in ERPNext (Mode of Payment doctype) and referenc
 
 Follows ERPNext naming series configuration. No custom logic in Amuse.
 
+### Returns
+
+Returns are handled via `amuse/api/returns.py`:
+
+```python
+# Create return
+create_return(
+    invoice_type="Sales Invoice",
+    invoice_name="SI-2026-00001",
+    items=[{"item_code": "ITEM", "qty": 1}]  # Partial return
+)
+
+# Full return (no items specified)
+create_return(
+    invoice_type="POS Invoice", 
+    invoice_name="POS-2026-00001"
+)
+```
+
+Returns work for both Sales Invoices and POS Invoices.
+
 ## Dependencies
 
 - **ERPNext**: Sales Invoice, Payment Entry, Party, Taxes
