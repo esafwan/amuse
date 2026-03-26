@@ -2,27 +2,73 @@ import frappe
 from amuse.services.price_change_logger import create_pending_price_change_log
 
 
-def _resolve_company_for_item_price(doc) -> str | None:
+def _resolve_company_for_item_price(doc, user: str | None = None) -> str:
     """
-    Standard Item Price has no company field; Price Change Log requires company.
-    Resolve from Item defaults, then global default, then any Company.
+    Resolve company for Price Change Log with proper multi-company support.
+    
+    Resolution order:
+    1. Item's default company (from Item Default child table)
+    2. User's permitted company (from User Permission)
+    3. Session company (if price list has company restriction)
+    4. Global default company
+    5. Error (don't guess randomly)
+    
+    Args:
+        doc: Item Price document
+        user: User to check permissions for (default: current user)
+        
+    Returns:
+        Company name
+        
+    Raises:
+        frappe.ValidationError: If company cannot be determined
     """
-    c = getattr(doc, "company", None)
-    if c:
-        return c
+    from frappe import _
+    
+    # Priority 1: Item's default company
     item_code = getattr(doc, "item_code", None)
     if item_code:
-        row = frappe.db.get_value(
+        item_defaults = frappe.get_all(
             "Item Default",
-            {"parent": item_code, "parenttype": "Item"},
-            "company",
+            filters={"parent": item_code, "parenttype": "Item"},
+            fields=["company"],
+            limit=1,
         )
-        if row:
-            return row
-    c = frappe.db.get_single_value("Global Defaults", "default_company")
-    if c and frappe.db.exists("Company", c):
-        return c
-    return frappe.db.get_value("Company", {}, "name")
+        if item_defaults and item_defaults[0].company:
+            return item_defaults[0].company
+    
+    # Priority 2: User's permitted company
+    user = user or frappe.session.user
+    user_permissions = frappe.defaults.get_user_permissions(user)
+    
+    if user_permissions and "Company" in user_permissions:
+        permitted = user_permissions["Company"]
+        if permitted:
+            # Return first permitted company
+            return permitted[0].get("doc") if isinstance(permitted[0], dict) else permitted[0]
+    
+    # Priority 3: Get from Price List's company (if restricted)
+    price_list = getattr(doc, "price_list", None)
+    if price_list:
+        # Check if price list is company-specific
+        pl_company = frappe.db.get_value("Price List", price_list, "company")
+        if pl_company:
+            return pl_company
+    
+    # Priority 4: Global default
+    global_default = frappe.db.get_single_value("Global Defaults", "default_company")
+    if global_default and frappe.db.exists("Company", global_default):
+        return global_default
+    
+    # Fail explicitly - don't guess
+    frappe.throw(
+        _(
+            "Company could not be determined for Price Change Log. "
+            "Please set a default company in Global Defaults or "
+            "configure Item Defaults for item {0}."
+        ).format(item_code or "Unknown"),
+        title=_("Company Resolution Error"),
+    )
 
 
 def handle_item_price_change(doc, method=None):
