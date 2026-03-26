@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "generated_at": "2026-03-26T08:55:59Z",
+  "skill_count": 9,
+  "skills": [
+    {
+      "name": "pos-system",
+      "description": "The Point of Sale (POS) system for theme park operations including session management (opening/closing shifts), item catalog browsing, cart management, barcode search, stock checking, and payment processing. Consult this skill when working on POS UI, session flows, checkout logic, or receipt handling.",
+      "category": "features",
+      "path": "skills/pos-system/SKILL.md",
+      "key_files": [
+        "amuse/api/pos.py",
+        "frontend/src/pages/POSView.tsx",
+        "frontend/src/hooks/usePOS.ts"
+      ],
+      "depends_on": ["billing-system", "permissions-rbac", "react-query-patterns"],
+      "tags": ["pos", "point-of-sale", "checkout", "retail", "sessions", "payments"]
+    },
+    {
+      "name": "billing-system",
+      "description": "Sales Invoice management including creation, submission, cancellation, payment entry processing, and party details resolution. Handles both POS-generated and manual invoices. Consult this skill for invoice CRUD, payment workflows, tax calculations, or customer billing logic.",
+      "category": "features",
+      "path": "skills/billing-system/SKILL.md",
+      "key_files": [
+        "amuse/api/billing.py",
+        "frontend/src/pages/Billing.tsx",
+        "frontend/src/hooks/useInvoice.ts"
+      ],
+      "depends_on": ["customer-management", "permissions-rbac", "react-query-patterns"],
+      "tags": ["billing", "invoices", "payments", "sales", "taxes"]
+    },
+    {
+      "name": "customer-management",
+      "description": "Customer CRUD operations, search/typeahead, party details resolution, and address management. Provides the customer directory for POS and billing workflows. Consult this skill for customer forms, search logic, or address handling.",
+      "category": "features",
+      "path": "skills/customer-management/SKILL.md",
+      "key_files": [
+        "amuse/api/customers.py",
+        "frontend/src/pages/Customers.tsx",
+        "frontend/src/hooks/useCustomer.ts"
+      ],
+      "depends_on": ["permissions-rbac", "react-query-patterns"],
+      "tags": ["customers", "crm", "directory", "contacts", "addresses"]
+    },
+    {
+      "name": "permissions-rbac",
+      "description": "Role-based access control system with capabilities, Amuse Roles, user-role assignments, and permission queries. Provides fine-grained access control beyond standard Frappe roles. Consult this skill for authorization, user management, role configuration, or capability checks.",
+      "category": "features",
+      "path": "skills/permissions-rbac/SKILL.md",
+      "key_files": [
+        "amuse/permissions.py",
+        "amuse/api/permissions.py",
+        "frontend/src/contexts/PermissionsContext.tsx",
+        "frontend/src/hooks/usePermissions.ts"
+      ],
+      "depends_on": ["react-query-patterns"],
+      "tags": ["auth", "rbac", "permissions", "roles", "users", "security", "capabilities"]
+    },
+    {
+      "name": "pricing-intelligence",
+      "description": "Price change tracking, logging, and analytics. Automatically detects Item Price modifications, creates immutable change logs, and computes regime snapshots showing revenue impact of price changes. Consult this skill for price history, change auditing, or pricing analytics.",
+      "category": "features",
+      "path": "skills/pricing-intelligence/SKILL.md",
+      "key_files": [
+        "amuse/services/price_change_detector.py",
+        "amuse/services/price_change_logger.py",
+        "amuse/services/analytics_snapshot.py",
+        "amuse/api/price_change.py",
+        "frontend/src/pages/PricingWorkspace.tsx"
+      ],
+      "depends_on": ["analytics-snapshot", "permissions-rbac"],
+      "tags": ["pricing", "analytics", "audit", "logs", "revenue", "intelligence"]
+    },
+    {
+      "name": "analytics-snapshot",
+      "description": "Background job infrastructure for computing price regime analytics and other long-running analytical queries. Uses Frappe's job queue system. Consult this skill for background processing, job scheduling, or analytical computations.",
+      "category": "patterns",
+      "path": "skills/analytics-snapshot/SKILL.md",
+      "key_files": [
+        "amuse/jobs/snapshot_jobs.py",
+        "amuse/services/analytics_snapshot.py"
+      ],
+      "depends_on": ["pricing-intelligence"],
+      "tags": ["jobs", "background-tasks", "queue", "analytics", "async"]
+    },
+    {
+      "name": "frontend-architecture",
+      "description": "React SPA architecture including routing, authentication guards, app shell layout, bottom navigation, and page structure. Consult this skill for route setup, navigation, auth flows, or layout changes.",
+      "category": "ui",
+      "path": "skills/frontend-architecture/SKILL.md",
+      "key_files": [
+        "frontend/src/App.tsx",
+        "frontend/src/shell/AppShell.tsx",
+        "frontend/src/auth/RequireAuth.tsx"
+      ],
+      "depends_on": ["permissions-rbac", "react-query-patterns", "theme-system"],
+      "tags": ["react", "spa", "routing", "navigation", "layout", "frontend"]
+    },
+    {
+      "name": "react-query-patterns",
+      "description": "Server state management patterns using TanStack Query (React Query). Includes query keys, caching strategies, mutations, and invalidation patterns. Consult this skill for data fetching, caching, or sync between server and client state.",
+      "category": "patterns",
+      "path": "skills/react-query-patterns/SKILL.md",
+      "key_files": [
+        "frontend/src/hooks/usePermissions.ts",
+        "frontend/src/hooks/usePOS.ts",
+        "frontend/src/hooks/useInvoice.ts"
+      ],
+      "depends_on": [],
+      "tags": ["react-query", "tanstack", "caching", "state-management", "api"]
+    },
+    {
+      "name": "theme-system",
+      "description": "CSS variable-based theming with dark/light mode support. Includes color tokens, spacing, typography, and the theme toggle mechanism. Consult this skill for styling, theme customization, or visual design changes.",
+      "category": "design-system",
+      "path": "skills/theme-system/SKILL.md",
+      "key_files": [
+        "frontend/src/index.css",
+        "frontend/src/shell/ThemeToggle.tsx"
+      ],
+      "depends_on": [],
+      "tags": ["theme", "design-system", "css-variables", "dark-mode", "styling"]
+    }
+  ]
+}

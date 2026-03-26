@@ -35,3 +35,15 @@ An agent's task or phase is NOT considered "Done" until the following artifacts 
 4. **Commit & Push**: All code and documentation must be committed and pushed to the remote repository before the final user notification.
 
 **DO NOT ask for permission to document. It is a core project requirement.**
+
+## Skills Directory
+
+This repository includes a `skills/` directory containing structured knowledge about features, UI patterns, design system elements, and developer workflows.
+
+Before working on any area of the codebase, check if a relevant skill exists:
+
+1. Read `skills/_index.json` for the full catalog
+2. Open the relevant `skills/<name>/SKILL.md` for detailed context
+3. Check `references/` subdirectories for supplementary detail
+
+Skills help you understand *how* things work here, *where* the code lives, and *what to watch out for* — consult them before making changes.
