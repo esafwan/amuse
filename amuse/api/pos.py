@@ -138,7 +138,10 @@ def list_pos_profiles() -> list[dict]:
 
 @frappe.whitelist()
 def get_closing_preview(pos_opening_entry: str) -> dict[str, Any]:
-	"""Build an in-memory POS Closing Entry (not saved) for review in the SPA."""
+	"""Build an in-memory POS Closing Entry (not saved) for review in the SPA.
+	
+	Includes both POS Invoices and Sales Invoices (express mode) in the preview.
+	"""
 	opening = _get_opening_or_throw(pos_opening_entry)
 	if opening.status != "Open":
 		frappe.throw(_("Selected POS Opening Entry is not open."))
@@ -150,7 +153,13 @@ def get_closing_preview(pos_opening_entry: str) -> dict[str, Any]:
 	closing = make_closing_entry_from_opening(opening)
 	_ensure_payment_reconciliation_from_opening_if_empty(closing, opening)
 	_apply_closing_amounts(closing, None)
-	return closing.as_dict()
+	
+	# Add POS Invoice summary to the response
+	closing_dict = closing.as_dict()
+	closing_dict["pos_invoice_summary"] = _get_pos_invoice_summary(pos_opening_entry)
+	closing_dict["sales_invoice_summary"] = _get_sales_invoice_summary(pos_opening_entry)
+	
+	return closing_dict
 
 
 @frappe.whitelist()
@@ -158,22 +167,153 @@ def submit_pos_closing(
 	pos_opening_entry: str,
 	payment_reconciliation: str | list | None = None,
 ) -> dict[str, Any]:
-	"""Create and submit POS Closing Entry for the given opening (delegates to ERPNext)."""
-	opening = _get_opening_or_throw(pos_opening_entry)
-	if opening.status != "Open":
-		frappe.throw(_("Selected POS Opening Entry is not open."))
-	_assert_can_access_opening(opening)
-	from erpnext.accounts.doctype.pos_closing_entry.pos_closing_entry import (
-		make_closing_entry_from_opening,
-	)
+	"""Create and submit POS Closing Entry with concurrency protection.
+	
+	Args:
+		pos_opening_entry: POS Opening Entry name
+		payment_reconciliation: Payment counts by mode
+		
+	Returns:
+		Submitted closing entry as dict
+		
+	Raises:
+		frappe.ValidationError: If session already being closed
+	"""
+	# Acquire lock to prevent concurrent closing attempts
+	opening = _acquire_closing_lock(pos_opening_entry)
+	
+	try:
+		_assert_can_access_opening(opening)
+		
+		from erpnext.accounts.doctype.pos_closing_entry.pos_closing_entry import (
+			make_closing_entry_from_opening,
+		)
 
-	closing = make_closing_entry_from_opening(opening)
-	_ensure_payment_reconciliation_from_opening_if_empty(closing, opening)
-	user_rows = _parse_payment_table(payment_reconciliation)
-	_apply_closing_amounts(closing, user_rows)
-	closing.insert()
-	closing.submit()
-	return closing.as_dict()
+		closing = make_closing_entry_from_opening(opening)
+		_ensure_payment_reconciliation_from_opening_if_empty(closing, opening)
+		user_rows = _parse_payment_table(payment_reconciliation)
+		_apply_closing_amounts(closing, user_rows)
+		
+		# Link POS Invoices to closing entry
+		_link_pos_invoices_to_closing(pos_opening_entry, closing)
+		
+		closing.insert()
+		closing.submit()
+		
+		return closing.as_dict()
+		
+	except Exception:
+		# Release lock on failure
+		_release_closing_lock(pos_opening_entry)
+		raise
+
+
+def _acquire_closing_lock(pos_opening_entry: str) -> Any:
+	"""Acquire exclusive lock on POS Opening Entry.
+	
+	Uses database row locking and status check to prevent race conditions.
+	"""
+	# Use FOR UPDATE to lock the row
+	opening_data = frappe.db.sql(
+		"""
+		SELECT name, status, user, company, pos_profile 
+		FROM `tabPOS Opening Entry` 
+		WHERE name = %s 
+		FOR UPDATE
+		""",
+		(pos_opening_entry,),
+		as_dict=True,
+	)
+	
+	if not opening_data:
+		frappe.throw(_("POS Opening Entry not found"))
+	
+	opening = opening_data[0]
+	
+	if opening.status != "Open":
+		frappe.throw(
+			_(
+				"POS Opening Entry is already being closed or is closed. Status: {0}"
+			).format(opening.status),
+			title=_("Session Already Closing"),
+		)
+	
+	# Set status to "Closing" to prevent other attempts
+	frappe.db.set_value(
+		"POS Opening Entry",
+		pos_opening_entry,
+		{"status": "Closing", "closing_in_progress_by": frappe.session.user},
+		update_modified=False,
+	)
+	frappe.db.commit()
+	
+	return opening
+
+
+def _release_closing_lock(pos_opening_entry: str) -> None:
+	"""Release lock and reset status on failure."""
+	frappe.db.set_value(
+		"POS Opening Entry",
+		pos_opening_entry,
+		{"status": "Open", "closing_in_progress_by": None},
+		update_modified=False,
+	)
+	frappe.db.commit()
+
+
+def _get_pos_invoice_summary(pos_opening_entry: str) -> dict[str, Any]:
+	"""Get summary of POS Invoices for the session."""
+	invoices = frappe.get_all(
+		"POS Invoice",
+		filters={
+			"pos_opening_entry": pos_opening_entry,
+			"docstatus": 1,
+		},
+		fields=["name", "customer", "grand_total", "posting_date", "consolidated_invoice"],
+	)
+	
+	return {
+		"count": len(invoices),
+		"total": sum(flt(inv.grand_total) for inv in invoices),
+		"consolidated": len([inv for inv in invoices if inv.consolidated_invoice]),
+		"pending": len([inv for inv in invoices if not inv.consolidated_invoice]),
+		"invoices": invoices[:10],  # First 10 for preview
+	}
+
+
+def _get_sales_invoice_summary(pos_opening_entry: str) -> dict[str, Any]:
+	"""Get summary of Sales Invoices (express mode) for the session."""
+	invoices = frappe.get_all(
+		"Sales Invoice",
+		filters={
+			"pos_opening_entry": pos_opening_entry,
+			"docstatus": 1,
+			"is_pos": 1,
+		},
+		fields=["name", "customer", "grand_total", "posting_date"],
+	)
+	
+	return {
+		"count": len(invoices),
+		"total": sum(flt(inv.grand_total) for inv in invoices),
+		"invoices": invoices[:10],
+	}
+
+
+def _link_pos_invoices_to_closing(pos_opening_entry: str, closing: Any) -> None:
+	"""Link POS Invoices to the closing entry for consolidation."""
+	pos_invoices = frappe.get_all(
+		"POS Invoice",
+		filters={
+			"pos_opening_entry": pos_opening_entry,
+			"docstatus": 1,
+			"consolidated_invoice": ["is", "not set"],
+		},
+		pluck="name",
+	)
+	
+	for pi_name in pos_invoices:
+		closing.append("pos_invoices", {"pos_invoice": pi_name})
 
 
 # ---------------------------------------------------------------------------
