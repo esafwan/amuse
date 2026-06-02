@@ -1,0 +1,6 @@
+{
+  "source_name": "amuse_test_knowledge",
+  "description": "A test knowledge source",
+  "storage_mode": "Frappe File",
+  "scope": "Global"
+}

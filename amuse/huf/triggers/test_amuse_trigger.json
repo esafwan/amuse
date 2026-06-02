@@ -1,0 +1,8 @@
+{
+  "trigger_name": "amuse_test_trigger",
+  "agent": "Amuse Test Agent",
+  "trigger_type": "Doc Event",
+  "reference_doctype": "User",
+  "doc_event": "after_insert",
+  "disabled": 0
+}
