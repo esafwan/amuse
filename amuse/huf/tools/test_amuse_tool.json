@@ -1,0 +1,10 @@
+{
+  "tool_name": "test_amuse_tool",
+  "tool_type": "Custom",
+  "description": "A test tool for the amuse app",
+  "types": "Custom Function",
+  "function_path": "amuse.api.test_tool",
+  "parameters": [
+    {"label": "Test Param", "fieldname": "test_param", "type": "string", "required": 1}
+  ]
+}

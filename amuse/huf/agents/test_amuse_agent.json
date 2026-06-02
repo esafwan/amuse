@@ -1,0 +1,12 @@
+{
+  "agent_name": "Amuse Test Agent",
+  "description": "Test agent for amuse",
+  "provider": "OpenAI",
+  "model": "gpt-4o-mini",
+  "prompt_mode": "Local",
+  "instructions": "You are a test agent.",
+  "temperature": 0.3,
+  "allow_chat": 1,
+  "tools": ["test_amuse_tool"],
+  "knowledge": ["amuse_test_knowledge"]
+}
